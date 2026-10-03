@@ -1,0 +1,14 @@
+# Bennu physical constants. Every value needs a source; "verify" = recalled, not yet checked against the paper.
+gm_m3_s2: 4.892            # Scheeres et al. 2019, Nat. Astron. (verify)
+rotation_period_h: 4.296057 # Nolan et al. 2013 / Lauretta et al. 2019 (verify)
+mean_radius_m: 245.03      # Barnouin et al. 2019, Nat. Geosci. (verify)
+geometric_albedo: 0.044    # Lauretta et al. 2019, Nature (verify)
+bulk_density_kg_m3: 1190   # Scheeres et al. 2019 (verify)
+spin_axis_obliquity_deg: 177.6  # retrograde rotator (verify)
+
+# Nightingale (primary TAG site). Lat/lon taken from the NASA SVS model filename l_00050mm_alt_ptm_5595n04217_v020
+site:
+  name: Nightingale
+  lat_deg: 55.95
+  lon_deg_e: 42.17
+  patch_size_m: 200   # crop used for rendering/sim (plan)

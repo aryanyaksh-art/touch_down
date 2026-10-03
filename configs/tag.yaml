@@ -1,0 +1,5 @@
+# TAG descent sequence. Confirmed from NASA "OSIRIS-REx Begins its Countdown to TAG" and NFT descriptions.
+checkpoint_altitude_m: 125   # confirmed (NASA countdown-to-TAG)
+matchpoint_altitude_m: 54    # confirmed
+contact_vertical_velocity_m_s: -0.10  # confirmed (-10 cm/s)
+backaway_decision_altitude_m: 5       # confirmed (NASA: autonomous back-away at ~5 m / 16 ft)

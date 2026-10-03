@@ -1,0 +1,6 @@
+# Ground-truth hazard definition (used for training labels and the prior hazard map).
+hazard_object_size_m: 0.21    # CONFIRMED: >= 21 cm longest dimension obstructs the TAGSAM inner annulus. We use it as a height-above-ground proxy (a heightfield gives height, not longest dimension): ASSUMPTION to defend with the expert.
+max_slope_deg: 14.0           # CONFIRMED: max surface angle TAGSAM can accommodate
+slope_window_m: 0.5           # ASSUMPTION: scale over which slope is evaluated (about the TAGSAM head footprint; real head size to verify)
+ground_opening_m: 2.0         # ASSUMPTION: grey-opening window used to estimate bare ground under rocks
+sample_zone_diameter_m: 8.0   # CONFIRMED (NASA): Nightingale sampling region ~8 m

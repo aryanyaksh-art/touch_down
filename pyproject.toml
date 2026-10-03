@@ -1,0 +1,27 @@
+[project]
+name = "touchdown"
+version = "0.1.0"
+description = "Recreation of OSIRIS-REx autonomous TAG at Bennu (NFT + hazard-map back-away + NN hazard detection)"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "numpy",
+    "scipy",
+    "trimesh",
+    "pyyaml",
+    "matplotlib",
+    "pillow",
+    "requests",
+]
+
+[dependency-groups]
+dev = ["pytest"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["touchdown"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
