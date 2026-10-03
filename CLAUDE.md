@@ -21,3 +21,5 @@ A TKS Build: recreate OSIRIS-REx's autonomous Touch-And-Go (TAG) at Bennu.
 
 ## Environment
 Windows 11, Snapdragon X (ARM64), 16 GB RAM, no NVIDIA GPU. Git Bash and PowerShell available.
+Blender 5.2.2 (Windows ARM64 portable) is at `%LOCALAPPDATA%TouchDowndatablenderblender-5.2.2-windows-arm64blender.exe`; use the same 5.2.2 (linux-x64) on Colab.
+Data in `%LOCALAPPDATA%TouchDowndata`: site OBJ, global OBJ, `nightingale_dtm_5cm.npz`, `nightingale_vertices_m.npy`.

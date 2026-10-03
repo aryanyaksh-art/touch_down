@@ -59,9 +59,26 @@ def mesh_to_dtm(vertices: np.ndarray, res_m: float = 0.05) -> DTM:
     ssum = np.bincount(flat, weights=loc[:, 2], minlength=nx * ny)
     z = np.where(cnt > 0, ssum / np.maximum(cnt, 1), np.nan).reshape(ny, nx)
     gaps = np.isnan(z)
-    if gaps.any():  # nearest-neighbour fill; gaps are a few cells wide at 5 cm
-        idx = ndimage.distance_transform_edt(gaps, return_distances=False, return_indices=True)
+    if gaps.any():  # nearest-neighbour fill; interior gaps are a few cells wide at 5 cm
+        dist, idx = ndimage.distance_transform_edt(gaps, return_distances=True, return_indices=True)
         z = z[tuple(idx)]
+    else:
+        dist = np.zeros_like(z)
+    # The tile is a rotated quad, so the bounding grid has empty corners/edges that the fill would smear.
+    # Keep only the largest near-fully-valid axis-aligned rectangle (cells farther than 3 px from data are invalid).
+    valid = dist <= 3
+    r0, r1, c0, c1 = 0, ny, 0, nx
+    while True:
+        sub = valid[r0:r1, c0:c1]
+        fr = [sub[0].mean(), sub[-1].mean(), sub[:, 0].mean(), sub[:, -1].mean()]
+        if min(fr) >= 0.995:
+            break
+        k = int(np.argmin(fr))
+        r0, r1, c0, c1 = (r0 + 1, r1, c0, c1) if k == 0 else (r0, r1 - 1, c0, c1) if k == 1 else             (r0, r1, c0 + 1, c1) if k == 2 else (r0, r1, c0, c1 - 1)
+    z = z[r0:r1, c0:c1]
+    x0 += c0 * res_m
+    y0 += r0 * res_m
+    ny, nx = z.shape
     cx, cy = x0 + nx * res_m / 2, y0 + ny * res_m / 2
     origin_body = centroid + R @ np.array([cx, cy, 0.0])
     return DTM(z.astype(np.float32), res_m, origin_body, R)
