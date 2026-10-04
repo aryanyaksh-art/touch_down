@@ -111,6 +111,16 @@ def setup_device(scene, device):
     return "CPU"
 
 
+def set_visibility(obj, visible: bool):
+    """Show or hide an object to every ray type without removing it from the scene (no re-export, no recompile)."""
+    obj.visible_camera = visible
+    obj.visible_diffuse = visible
+    obj.visible_glossy = visible
+    obj.visible_transmission = visible
+    obj.visible_volume_scatter = visible
+    obj.visible_shadow = visible
+
+
 def render_to_array(scene, w, h, path):
     """Render, write a float EXR (scene-linear, no colour transform), read it back. Render Result.pixels is
     empty in background mode, so the file round trip is the reliable route."""
@@ -138,7 +148,6 @@ def main():
     # Keep the exported terrain (1M+ vertices) and its BVH between renders: only the camera, sun and shader change.
     # Without this every render re-exports the mesh, which dominates the time on a GPU machine with few CPU cores.
     scene.render.use_persistent_data = True
-    view_layer = bpy.context.view_layer
     scene.view_settings.view_transform = "Standard"
     scene.render.image_settings.file_format = "OPEN_EXR"
     scene.render.image_settings.color_depth = "32"
@@ -161,6 +170,13 @@ def main():
 
     mat_beauty, mat_pos = make_beauty_material(0.044), make_position_material()
     terrain.data.materials.append(mat_beauty)
+    # Both shaders stay in the scene for the whole run, on two objects sharing one mesh. Only camera visibility is
+    # toggled between passes. Swapping a material instead forced a GPU kernel recompile every frame (~13 s on a T4).
+    terrain_pos = bpy.data.objects.new("terrain_pos", terrain.data)
+    scene.collection.objects.link(terrain_pos)
+    slot = terrain_pos.material_slots[0]   # the mesh has one slot (beauty); give this object its own material
+    slot.link = "OBJECT"
+    slot.material = mat_pos
     print("@@READY", flush=True)
 
     for line in sys.stdin:
@@ -187,7 +203,8 @@ def main():
 
         a = float(req.get("albedo", 0.044))
         mat_beauty.node_tree.nodes["diffuse"].inputs["Color"].default_value = (a, a, a, 1.0)
-        view_layer.material_override = None
+        set_visibility(terrain, True)
+        set_visibility(terrain_pos, False)
         scene.cycles.samples = int(req.get("samples", args["samples"]))
         scene.cycles.filter_width = 1.5
         t0 = time.time()
@@ -196,7 +213,8 @@ def main():
 
         t0 = time.time()
         if req.get("want_pos", True):
-            view_layer.material_override = mat_pos  # swaps shaders only (no mesh re-export); 1 spp + tiny filter = point-sampled
+            set_visibility(terrain, False)
+            set_visibility(terrain_pos, True)    # 1 spp + tiny filter = point-sampled at pixel centres
             scene.cycles.samples = 1
             scene.cycles.filter_width = 0.01
             posr = render_to_array(scene, w, h, req["out"] + ".pos.exr")
