@@ -11,6 +11,7 @@ Request keys: id, out, cam_pos [x,y,z], R (3x3 local_from_cam, OpenCV axes), hfo
 """
 import json
 import sys
+import time
 
 import bpy
 import numpy as np
@@ -169,6 +170,7 @@ def main():
         req = json.loads(line)
         if req.get("cmd") == "quit":
             break
+        t_req = time.time()
         w, h = int(req["w"]), int(req["h"])
         scene.render.resolution_x, scene.render.resolution_y = w, h
         scene.render.resolution_percentage = 100
@@ -188,8 +190,11 @@ def main():
         view_layer.material_override = None
         scene.cycles.samples = int(req.get("samples", args["samples"]))
         scene.cycles.filter_width = 1.5
+        t0 = time.time()
         beauty = render_to_array(scene, w, h, req["out"] + ".beauty.exr")
+        t_beauty = time.time() - t0
 
+        t0 = time.time()
         if req.get("want_pos", True):
             view_layer.material_override = mat_pos  # swaps shaders only (no mesh re-export); 1 spp + tiny filter = point-sampled
             scene.cycles.samples = 1
@@ -199,6 +204,7 @@ def main():
             pos[posr[..., 3] < 0.5] = np.nan
         else:  # navigation needs only the lit image; skipping the position pass halves the render cost
             pos = np.full((1, 1, 3), np.nan, np.float32)
+        t_pos = time.time() - t0
         for suffix in (".beauty.exr", ".pos.exr"):
             try:
                 import os
@@ -206,7 +212,8 @@ def main():
             except OSError:
                 pass
         np.savez_compressed(req["out"], rgb=beauty[..., :3].astype(np.float16), pos=pos.astype(np.float32))
-        print("@@RESULT " + json.dumps({"id": req["id"], "out": req["out"]}), flush=True)
+        print("@@RESULT " + json.dumps({"id": req["id"], "out": req["out"], "t_beauty": t_beauty, "t_pos": t_pos,
+                                  "t_total": time.time() - t_req}), flush=True)
 
 
 main()

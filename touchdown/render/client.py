@@ -52,6 +52,7 @@ class BlenderRenderer:
         self._log: list[str] = []
         self._wait_for("@@READY")
         self._n = 0
+        self.last_timing: dict = {}
 
     def _wait_for(self, prefix: str) -> str:
         for line in self.proc.stdout:
@@ -74,7 +75,8 @@ class BlenderRenderer:
             req["samples"] = samples
         self.proc.stdin.write(json.dumps(req) + "\n")
         self.proc.stdin.flush()
-        self._wait_for("@@RESULT")
+        line = self._wait_for("@@RESULT")
+        self.last_timing = json.loads(line[len("@@RESULT "):])
         with np.load(out) as d:
             frame = {"rgb": d["rgb"].astype(np.float32), "pos": d["pos"]}
         out.unlink()
