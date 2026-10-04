@@ -50,3 +50,10 @@ Status: CONFIRMED = read in a source during this project. VERIFY = recalled, che
 - Synthetic terrain: injected boulder density N(>1 m) = 0.055/m^2 is taken from the real tile (merged-component count, so a lower bound); slope -2.9 from DellaGiustina 2019 (VERIFY). With these, synthetic hazard fractions (safe 0.44, boulder 0.25, steep 0.31) are close to the real tile (0.39 / 0.27 / 0.34). Synthetic boulders are smooth half-ellipsoids; real ones are angular. This is the main sim-to-real gap and is what the real-terrain test set measures.
 - Dataset altitudes are limited to 4-45 m because the 5 cm tile is only ~48 m wide (frames must stay on the tile). Higher-altitude views need the global model (downloaded, not yet used).
 - GPU rendering path (Linux Blender on Colab) is written but not yet tested; CPU path verified locally (7-13 s/frame).
+
+## NFT open-loop result (scripts/nft_openloop.py, one run, seed 0)
+- 0.1 m/s descent 40 m -> 6 m over the real Nightingale tile, 17 frames at 20 s. Initial error 0.55 m. Error falls to 0.06-0.2 m above 22 m (coarse 25 cm onboard model) and 0.01-0.05 m below (fine 5 cm onboard model).
+- Calibration (NEES, 3 dof, expected mean 3): ~1-3 below 20 m; 10-20 between 22 and 34 m, i.e. mildly overconfident with the coarse model. One run only; the Monte Carlo gives real statistics.
+- Optimistic at low altitude: the truth camera renders the same 5 cm model the onboard 5 cm model is derived from (plus 2 cm noise). Real centimetre-scale terrain not in any model is absent here. Do not compare the low-altitude centimetre errors directly with the mission's 3.5 cm predicted-vs-actual contact figure.
+- Bug found and fixed on the way: one-sided cropping when downsampling the onboard DTM shifted it ~10 cm (0.3 m navigation bias).
+- Filter design choices that are ASSUMPTIONS: 41x41 px templates, +-14 px search, 12 landmarks, 20 s frame cadence, attitude known exactly, landmark-height uncertainty = max(3 cm, 0.4 x model resolution).

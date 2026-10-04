@@ -27,6 +27,12 @@ A from-scratch recreation of the autonomous sample collection NASA's OSIRIS-REx 
 
 <sub>Training terrains (centre, right) are the real ground with its boulders removed and new power-law boulders injected. The real Nightingale surface (left) is the test set, so test accuracy measures transfer from synthetic to real boulders.</sub>
 
+### Navigation without GPS
+
+<img src="docs/img/nft_openloop.png" width="780" alt="NFT position error over a descent">
+
+<sub>Open-loop test: a 0.1 m/s descent from 40 m to 6 m. Starting 0.55 m off, the filter matches rendered landmarks to the camera image and settles at centimetres. Single run; see the caveats in docs/references.md.</sub>
+
 ## Why
 
 At Bennu, radio signals take minutes to cross the gap, so remote control is impossible. The spacecraft has to navigate and decide alone. This project rebuilds that capability end to end and tests it with 1,000 simulated landings, compared against published OSIRIS-REx and Bennu data.
@@ -59,7 +65,7 @@ flowchart LR
 - [x] Dataset generator: synthetic training terrains, real Nightingale held out as the test set
 - [ ] Render the full dataset on Colab ([notebook](notebooks/01_render_dataset.ipynb))
 - [ ] U-Net hazard detector
-- [ ] NFT navigation filter
+- [x] NFT navigation filter (open-loop test passes; closed-loop and Monte Carlo pending)
 - [ ] Descent controller (Checkpoint, Matchpoint, back-away)
 - [ ] 1,000-landing Monte Carlo vs. published data
 - [ ] Replay website
