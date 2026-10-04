@@ -134,6 +134,10 @@ def main():
     print("@@DEVICE " + setup_device(scene, args["device"]), flush=True)
     scene.cycles.use_denoising = False
     scene.render.film_transparent = True
+    # Keep the exported terrain (1M+ vertices) and its BVH between renders: only the camera, sun and shader change.
+    # Without this every render re-exports the mesh, which dominates the time on a GPU machine with few CPU cores.
+    scene.render.use_persistent_data = True
+    view_layer = bpy.context.view_layer
     scene.view_settings.view_transform = "Standard"
     scene.render.image_settings.file_format = "OPEN_EXR"
     scene.render.image_settings.color_depth = "32"
@@ -181,13 +185,13 @@ def main():
 
         a = float(req.get("albedo", 0.044))
         mat_beauty.node_tree.nodes["diffuse"].inputs["Color"].default_value = (a, a, a, 1.0)
-        terrain.data.materials[0] = mat_beauty
+        view_layer.material_override = None
         scene.cycles.samples = int(req.get("samples", args["samples"]))
         scene.cycles.filter_width = 1.5
         beauty = render_to_array(scene, w, h, req["out"] + ".beauty.exr")
 
         if req.get("want_pos", True):
-            terrain.data.materials[0] = mat_pos  # 1 spp + tiny filter = point-sampled at pixel centres
+            view_layer.material_override = mat_pos  # swaps shaders only (no mesh re-export); 1 spp + tiny filter = point-sampled
             scene.cycles.samples = 1
             scene.cycles.filter_width = 0.01
             posr = render_to_array(scene, w, h, req["out"] + ".pos.exr")
