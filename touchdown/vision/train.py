@@ -60,6 +60,7 @@ def main():
     ap.add_argument("--lr", type=float, default=2e-3)
     ap.add_argument("--base", type=int, default=24)
     ap.add_argument("--max-items", type=int, default=None)
+    ap.add_argument("--init", default=None, help="start from this checkpoint (e.g. an earlier best.pt) instead of random weights")
     a = ap.parse_args()
     out = Path(a.out)
     out.mkdir(parents=True, exist_ok=True)
@@ -75,6 +76,10 @@ def main():
     print("class frequencies", freq.round(3), "weights", weight.cpu().numpy().round(2), flush=True)
 
     model = UNet(base=a.base).to(device)
+    if a.init:
+        ck = torch.load(a.init, map_location=device)
+        model.load_state_dict(ck["model"])
+        print("initialised from", a.init, flush=True)
     print("params", n_params(model), "device", device, flush=True)
     opt = torch.optim.AdamW(model.parameters(), lr=a.lr, weight_decay=1e-4)
     dl = DataLoader(train, batch_size=a.bs, shuffle=True, num_workers=2, drop_last=True)
@@ -98,6 +103,8 @@ def main():
         history.append({"epoch": ep, "loss": tot / len(dl), "val_miou": v["miou"], "val_false_safe": v["false_safe_rate"]})
         print(f"epoch {ep:2d} loss {tot / len(dl):.3f} val mIoU {v['miou']:.3f} false-safe {v['false_safe_rate']:.3f} "
               f"({time.time() - t0:.0f}s)", flush=True)
+        torch.save({"model": model.state_dict(), "base": a.base, "epoch": ep}, out / "last.pt")   # survives a disconnect
+        json.dump(history, open(out / "history.json", "w"), indent=1)
         if v["miou"] > best:
             best = v["miou"]
             torch.save({"model": model.state_dict(), "base": a.base}, out / "best.pt")
