@@ -3,8 +3,17 @@
 Local frame: x east, y north, z up; cell (row, col) centre at x = (col + 0.5 - nx/2) res, y = (row + 0.5 - ny/2) res,
 matching the Blender worker and touchdown/dataset/labels.py.
 """
+import os
+
 import numpy as np
 from scipy import ndimage
+
+try:
+    import torch
+
+    from touchdown.nav.raycast_gpu import make_height_sampler, raycast_gpu
+except ImportError:  # no torch (e.g. Windows on Arm): NumPy ray casting only
+    torch = None
 
 
 class HeightField:
@@ -15,6 +24,20 @@ class HeightField:
         gy, gx = np.gradient(self.z, self.res)
         n = np.stack([-gx, -gy, np.ones_like(gx)], axis=-1)
         self.normals = n / np.linalg.norm(n, axis=-1, keepdims=True)
+        self._gpu = None   # (device, height sampler), built on first use
+
+    def _gpu_backend(self):
+        """Batched torch ray casting when a GPU is present. TOUCHDOWN_NAV_GPU=cpu forces torch on CPU (tests), =0 disables."""
+        if torch is None:
+            return None
+        if self._gpu is None:
+            mode = os.environ.get("TOUCHDOWN_NAV_GPU", "auto")
+            if mode == "0" or (mode == "auto" and not torch.cuda.is_available()):
+                self._gpu = False
+            else:
+                dev = torch.device("cpu" if mode == "cpu" else "cuda")
+                self._gpu = (dev, make_height_sampler(self.z, self.res, dev))
+        return self._gpu or None
 
     def _cr(self, x, y):
         """Continuous (col, row) array coordinates of local xy."""
@@ -49,6 +72,9 @@ class HeightField:
         step = step or 0.5 * self.res
         t0 = np.broadcast_to(np.asarray(t0, float), (n,)).copy()
         t1 = np.broadcast_to(np.asarray(t1, float), (n,))
+        gpu = self._gpu_backend() if n >= 256 else None
+        if gpu is not None:
+            return raycast_gpu(gpu[1], np.broadcast_to(o, d.shape), d, t0, t1, step, gpu[0])
         out = np.full(n, np.nan)
         alive = np.ones(n, bool)
         prev_t = t0.copy()

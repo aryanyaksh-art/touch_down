@@ -46,3 +46,30 @@ def test_shadow_behind_wall():
     behind = np.array([[3.0, 0.0, 0.0]])       # east of wall: sun at west is blocked
     front = np.array([[-3.0, 0.0, 0.0]])
     assert hf.shadowed(behind, sun)[0] and not hf.shadowed(front, sun)[0]
+
+
+def test_torch_backend_matches_numpy_raycast_and_shadows(monkeypatch):
+    pytest = __import__("pytest")
+    pytest.importorskip("torch")
+    from scipy import ndimage
+    rng = np.random.default_rng(3)
+    z = (ndimage.gaussian_filter(rng.standard_normal((240, 240)), 5) * 1.2 +
+         ndimage.gaussian_filter(rng.standard_normal((240, 240)), 1.2) * 0.15)
+    monkeypatch.setenv("TOUCHDOWN_NAV_GPU", "0")
+    ref = HeightField(z, 0.1)
+    monkeypatch.setenv("TOUCHDOWN_NAV_GPU", "cpu")
+    gpu = HeightField(z, 0.1)
+    n = 1500
+    o = np.c_[rng.uniform(-5, 5, n), rng.uniform(-5, 5, n), rng.uniform(8, 16, n)]
+    d = np.c_[rng.normal(0, 0.3, n), rng.normal(0, 0.3, n), -np.ones(n)]
+    d /= np.linalg.norm(d, axis=1, keepdims=True)
+    t0 = np.full(n, 2.0)
+    t1 = np.full(n, 40.0)
+    a = ref.raycast(o, d, t0, t1, step=0.1)
+    b = gpu.raycast(o, d, t0, t1, step=0.1)
+    both = np.isfinite(a) & np.isfinite(b)
+    assert both.mean() > 0.95 and (np.isfinite(a) == np.isfinite(b)).mean() > 0.99
+    assert np.median(np.abs(a[both] - b[both])) < 0.005 and np.percentile(np.abs(a[both] - b[both]), 99) < 0.1
+    pts = o[both] + a[both, None] * d[both]
+    sun = np.array([0.4, 0.2, 0.89]); sun /= np.linalg.norm(sun)
+    assert (ref.shadowed(pts, sun) == gpu.shadowed(pts, sun)).mean() > 0.98

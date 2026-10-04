@@ -6,7 +6,7 @@ from dataclasses import dataclass, field
 import numpy as np
 
 from touchdown.nav.catalog import OnboardModel, select_visible
-from touchdown.nav.correlate import match_template, render_template
+from touchdown.nav.correlate import match_template, render_templates
 from touchdown.nav.ekf import NavEKF, UpdateReport
 from touchdown.nav.heightfield import HeightField
 from touchdown.render.camera import Camera
@@ -48,8 +48,8 @@ def nft_update(ekf: NavEKF, model: OnboardModel, cam: Camera, image_linear: np.n
     res = NFTResult(report=UpdateReport(), n_selected=len(pts))
     lms, uvs = [], []
     f_px = cam.f_px
-    for lm, uv in zip(pts, uv_pred):
-        tpl = render_template(hf, cam, ekf.pos, R_local_from_cam, sun_dir, uv, cfg.half, lm)
+    templates = render_templates(hf, cam, ekf.pos, R_local_from_cam, sun_dir, uv_pred, cfg.half, pts) if len(pts) else []
+    for lm, uv, tpl in zip(pts, uv_pred, templates):
         if tpl is None:
             continue
         m = match_template(image_linear, tpl, uv, cfg.search)

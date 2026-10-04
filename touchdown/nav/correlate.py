@@ -13,35 +13,47 @@ from touchdown.nav.heightfield import HeightField
 from touchdown.render.camera import Camera
 
 
-def render_template(hf: HeightField, cam: Camera, cam_pos: np.ndarray, R_local_from_cam: np.ndarray,
-                    sun_dir: np.ndarray, center_uv: np.ndarray, half: int, landmark: np.ndarray,
-                    shadows: bool = True, depth_margin: float = 12.0) -> np.ndarray | None:
-    """(2*half+1)^2 Lambertian template of the terrain around `center_uv` as seen from the given (predicted) pose.
+def render_templates(hf: HeightField, cam: Camera, cam_pos: np.ndarray, R_local_from_cam: np.ndarray,
+                     sun_dir: np.ndarray, centers_uv: np.ndarray, half: int, landmarks: np.ndarray,
+                     shadows: bool = True, depth_margin: float = 6.0) -> list[np.ndarray | None]:
+    """(2*half+1)^2 Lambertian templates of the terrain around each centre, as seen from the (predicted) pose.
 
-    Pixels whose ray misses the model are returned as NaN. Intensity = max(0, n.s), 0 inside cast shadows.
+    All landmarks are cast in one batch (one GPU call when a GPU is available). Pixels whose ray misses the model are
+    NaN; a template with more than 20% misses is returned as None. Intensity = max(0, n.s), 0 inside cast shadows.
     """
     n = 2 * half + 1
+    K = len(landmarks)
     # sample at real-image pixel centres (integer + 0.5), centred on the pixel containing the predicted landmark, so
     # a zero correlation offset means "no error" and the measured landmark pixel is center_uv + (du, dv)
-    cu, cv = np.floor(center_uv[0]), np.floor(center_uv[1])
-    us = cu + 0.5 + np.arange(-half, half + 1)
-    vs = cv + 0.5 + np.arange(-half, half + 1)
-    U, V = np.meshgrid(us, vs)
+    cu, cv = np.floor(centers_uv[:, 0]), np.floor(centers_uv[:, 1])
+    off = np.arange(-half, half + 1)
+    U = (cu[:, None, None] + 0.5 + off[None, None, :]) + np.zeros((K, n, n))
+    V = (cv[:, None, None] + 0.5 + off[None, :, None]) + np.zeros((K, n, n))
     uv = np.c_[U.ravel(), V.ravel()]
     rays = (R_local_from_cam @ cam.unproject(uv).T).T
-    rng = np.linalg.norm(np.asarray(landmark) - cam_pos)
-    t = hf.raycast(np.broadcast_to(cam_pos, rays.shape), rays, max(rng - depth_margin, 0.05), rng + depth_margin)
+    rng = np.linalg.norm(np.asarray(landmarks) - cam_pos, axis=1)
+    t0 = np.repeat(np.maximum(rng - depth_margin, 0.05), n * n)
+    t1 = np.repeat(rng + depth_margin, n * n)
+    t = hf.raycast(np.broadcast_to(cam_pos, rays.shape), rays, t0, t1, step=hf.res)
     ok = np.isfinite(t)
-    if ok.sum() < 0.8 * len(t):
-        return None
     pts = cam_pos + t[ok, None] * rays[ok]
     nrm = hf.normal(pts[:, 0], pts[:, 1])
     inten = np.clip(nrm @ sun_dir, 0.0, None)
     if shadows:
         inten[hf.shadowed(pts, sun_dir)] = 0.0
-    out = np.full(len(t), np.nan)
-    out[ok] = inten
-    return out.reshape(n, n)
+    full = np.full(len(t), np.nan)
+    full[ok] = inten
+    full = full.reshape(K, n, n)
+    valid = ok.reshape(K, n * n).mean(axis=1) >= 0.8
+    return [full[k] if valid[k] else None for k in range(K)]
+
+
+def render_template(hf: HeightField, cam: Camera, cam_pos: np.ndarray, R_local_from_cam: np.ndarray,
+                    sun_dir: np.ndarray, center_uv: np.ndarray, half: int, landmark: np.ndarray,
+                    shadows: bool = True, depth_margin: float = 6.0) -> np.ndarray | None:
+    """Single-landmark convenience wrapper around render_templates."""
+    return render_templates(hf, cam, cam_pos, R_local_from_cam, sun_dir, np.asarray(center_uv)[None], half,
+                            np.asarray(landmark)[None], shadows, depth_margin)[0]
 
 
 @dataclass
