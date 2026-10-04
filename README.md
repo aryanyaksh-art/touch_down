@@ -21,6 +21,12 @@ A from-scratch recreation of the autonomous sample collection NASA's OSIRIS-REx 
 
 <sub>Top: rendered NavCam-style frames at 10, 25 and 50 m. Bottom: labels (boulders yellow, steep ground red), looked up from the 3D position under each pixel so they register exactly.</sub>
 
+### Train on synthetic, test on real
+
+<img src="docs/img/synthetic_terrain.png" width="780" alt="Real Nightingale and two synthetic training terrains">
+
+<sub>Training terrains (centre, right) are the real ground with its boulders removed and new power-law boulders injected. The real Nightingale surface (left) is the test set, so test accuracy measures transfer from synthetic to real boulders.</sub>
+
 ## Why
 
 At Bennu, radio signals take minutes to cross the gap, so remote control is impossible. The spacecraft has to navigate and decide alone. This project rebuilds that capability end to end and tests it with 1,000 simulated landings, compared against published OSIRIS-REx and Bennu data.
@@ -50,7 +56,8 @@ flowchart LR
 
 - [x] Nightingale 5 cm terrain, height grid, ground-truth hazard map
 - [x] Blender renderer with pixel-exact hazard labels
-- [ ] Labeled image dataset at scale
+- [x] Dataset generator: synthetic training terrains, real Nightingale held out as the test set
+- [ ] Render the full dataset on Colab ([notebook](notebooks/01_render_dataset.ipynb))
 - [ ] U-Net hazard detector
 - [ ] NFT navigation filter
 - [ ] Descent controller (Checkpoint, Matchpoint, back-away)

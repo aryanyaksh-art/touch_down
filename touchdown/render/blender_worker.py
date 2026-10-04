@@ -21,11 +21,14 @@ POS_OFFSET = 50.0  # keeps emission colours positive; subtracted on readback
 
 def parse_args():
     argv = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else []
-    a = {"dtm": None, "samples": 32}
+    a = {"dtm": None, "samples": 32, "device": "CPU"}
     i = 0
     while i < len(argv):
         if argv[i] == "--dtm":
             a["dtm"] = argv[i + 1]
+            i += 2
+        elif argv[i] == "--device":
+            a["device"] = argv[i + 1]
             i += 2
         elif argv[i] == "--samples":
             a["samples"] = int(argv[i + 1])
@@ -86,6 +89,27 @@ def make_position_material():
     return m
 
 
+def setup_device(scene, device):
+    """CPU, or GPU via OptiX/CUDA (Colab/Kaggle). Falls back to CPU if no GPU is usable."""
+    scene.cycles.device = "CPU"
+    if device.upper() != "GPU":
+        return "CPU"
+    prefs = bpy.context.preferences.addons["cycles"].preferences
+    for kind in ("OPTIX", "CUDA", "HIP", "METAL", "ONEAPI"):
+        try:
+            prefs.compute_device_type = kind
+            prefs.get_devices()
+        except Exception:
+            continue
+        gpus = [d for d in prefs.devices if d.type != "CPU"]
+        if gpus:
+            for d in prefs.devices:
+                d.use = d.type != "CPU"
+            scene.cycles.device = "GPU"
+            return kind
+    return "CPU"
+
+
 def render_to_array(scene, w, h, path):
     """Render, write a float EXR (scene-linear, no colour transform), read it back. Render Result.pixels is
     empty in background mode, so the file round trip is the reliable route."""
@@ -107,7 +131,7 @@ def main():
     terrain = build_terrain(d["z"], float(d["res_m"]))
 
     scene.render.engine = "CYCLES"
-    scene.cycles.device = "CPU"
+    print("@@DEVICE " + setup_device(scene, args["device"]), flush=True)
     scene.cycles.use_denoising = False
     scene.render.film_transparent = True
     scene.view_settings.view_transform = "Standard"

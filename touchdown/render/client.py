@@ -34,12 +34,12 @@ def find_blender() -> str:
 class BlenderRenderer:
     """Renders frames of one DTM. Use as a context manager; the Blender process stays alive between frames."""
 
-    def __init__(self, dtm_path: str | Path, samples: int = 32, blender: str | None = None):
+    def __init__(self, dtm_path: str | Path, samples: int = 32, blender: str | None = None, device: str = "CPU"):
         self.dtm = DTM.load(dtm_path)
         self.tmp = Path(tempfile.mkdtemp(prefix="td_render_"))
         exe = blender or find_blender()
         args = ["-b", "--factory-startup", "-P", WORKER.as_posix(), "--",
-                "--dtm", Path(dtm_path).as_posix(), "--samples", str(samples)]
+                "--dtm", Path(dtm_path).as_posix(), "--samples", str(samples), "--device", device]
         if os.name == "nt":
             # Quirk on this Windows-on-Arm laptop: CreateProcess from Python fails with a side-by-side error for
             # Blender's exe, but the same exe starts fine through Git Bash. Launch via bash there.
