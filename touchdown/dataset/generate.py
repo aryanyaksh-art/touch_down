@@ -14,6 +14,7 @@ from pathlib import Path
 import numpy as np
 import yaml
 from PIL import Image
+from scipy import ndimage
 
 from touchdown.bennu.dtm import DTM
 from touchdown.bennu.paths import data_dir
@@ -48,7 +49,7 @@ def sample_pose(rng: np.random.Generator, extent_m: tuple[float, float], alt_ran
 
 def to_image(rgb: np.ndarray, rng: np.random.Generator) -> np.ndarray:
     """Auto-exposure with jitter, gamma, and sensor noise -> uint8 grey."""
-    g = rgb[..., 0]
+    g = ndimage.gaussian_filter(rgb[..., 0], 0.6)   # optics blur: the renderer point-samples pixels (no anti-aliasing)
     gain = rng.uniform(0.7, 1.0) / max(np.percentile(g, 99.5), 1e-9)
     img = np.clip(g * gain, 0, 1) ** (1 / 2.2)
     img = img + rng.normal(0, 1.5 / 255.0, img.shape)

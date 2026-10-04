@@ -205,8 +205,11 @@ def main():
         mat_beauty.node_tree.nodes["diffuse"].inputs["Color"].default_value = (a, a, a, 1.0)
         set_visibility(terrain, True)
         set_visibility(terrain_pos, False)
+        # Changing the pixel filter or sample count between renders makes Cycles rebuild its session (13 s on a T4). So
+        # every pass of a request uses the same settings: point-sampled pixels when positions are wanted (dataset),
+        # normal anti-aliasing otherwise (navigation). Dataset images are blurred afterwards to mimic the optics.
         scene.cycles.samples = int(req.get("samples", args["samples"]))
-        scene.cycles.filter_width = 1.5
+        scene.cycles.filter_width = 0.01 if req.get("want_pos", True) else 1.5
         t0 = time.time()
         beauty = render_to_array(scene, w, h, req["out"] + ".beauty.exr")
         t_beauty = time.time() - t0
@@ -214,9 +217,7 @@ def main():
         t0 = time.time()
         if req.get("want_pos", True):
             set_visibility(terrain, False)
-            set_visibility(terrain_pos, True)    # 1 spp + tiny filter = point-sampled at pixel centres
-            scene.cycles.samples = 1
-            scene.cycles.filter_width = 0.01
+            set_visibility(terrain_pos, True)    # same samples/filter as the beauty pass; all samples hit the pixel centre
             posr = render_to_array(scene, w, h, req["out"] + ".pos.exr")
             pos = posr[..., :3] - POS_OFFSET
             pos[posr[..., 3] < 0.5] = np.nan
