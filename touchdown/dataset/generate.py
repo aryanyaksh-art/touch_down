@@ -24,6 +24,11 @@ from touchdown.render.client import BlenderRenderer
 from touchdown.terrain.boulders import make_terrain
 from touchdown.terrain.hazards import build_hazard_map
 
+try:  # on a GPU machine, per-pixel positions come from a PyTorch ray caster (Blender's position pass costs ~13 s/frame there)
+    from touchdown.render.raycast_torch import surface_positions
+except ImportError:  # no torch (e.g. Windows on Arm): fall back to Blender's position pass
+    surface_positions = None
+
 ROOT = Path(__file__).resolve().parents[2]
 SPLIT_SEED_OFFSET = {"train": 0, "val": 10_000}  # synthetic seeds never overlap between splits
 
@@ -47,9 +52,10 @@ def sample_pose(rng: np.random.Generator, extent_m: tuple[float, float], alt_ran
     return pos, R, {"alt_m": alt, "tilt_deg": float(np.degrees(tilt)), "target": target[:2].tolist()}
 
 
-def to_image(rgb: np.ndarray, rng: np.random.Generator) -> np.ndarray:
-    """Auto-exposure with jitter, gamma, and sensor noise -> uint8 grey."""
-    g = ndimage.gaussian_filter(rgb[..., 0], 0.6)   # optics blur: the renderer point-samples pixels (no anti-aliasing)
+def to_image(rgb: np.ndarray, rng: np.random.Generator, blur_sigma: float = 0.0) -> np.ndarray:
+    """Auto-exposure with jitter, gamma, and sensor noise -> uint8 grey. blur_sigma mimics optics when the renderer
+    point-sampled the pixels (no anti-aliasing)."""
+    g = ndimage.gaussian_filter(rgb[..., 0], blur_sigma) if blur_sigma > 0 else rgb[..., 0]
     gain = rng.uniform(0.7, 1.0) / max(np.percentile(g, 99.5), 1e-9)
     img = np.clip(g * gain, 0, 1) ** (1 / 2.2)
     img = img + rng.normal(0, 1.5 / 255.0, img.shape)
@@ -94,13 +100,15 @@ def generate(out_dir: Path, split: str, terrain_ids: list[int], frames: int, see
                 for _ in range(8):
                     pos, R, meta = sample_pose(rng, (dtm.z.shape[1] * dtm.res_m, dtm.z.shape[0] * dtm.res_m))
                     az, el = rng.uniform(0, 360), rng.uniform(15, 70)
-                    f = r.render(cam, pos, R, sun_vector(az, el))
+                    f = r.render(cam, pos, R, sun_vector(az, el), want_pos=surface_positions is None)
+                    if surface_positions is not None:
+                        f["pos"] = surface_positions(dtm.z, dtm.res_m, cam, pos, R)
                     labels = pixel_labels(f["pos"], hm.classes, dtm.res_m)
                     hit = float((labels != IGNORE).mean())
                     if hit >= min_hit:
                         break
                 stem = f"{name}_{k:03d}"
-                Image.fromarray(to_image(f["rgb"], rng)).save(out_dir / "images" / f"{stem}.png")
+                Image.fromarray(to_image(f["rgb"], rng, 0.6 if surface_positions is None else 0.0)).save(out_dir / "images" / f"{stem}.png")
                 Image.fromarray(labels).save(out_dir / "labels" / f"{stem}.png")
                 meta.update({"frame": stem, "terrain": name, "split": split, "sun_az": az, "sun_el": el,
                              "cam_pos": pos.tolist(), "R": R.tolist(), "hit": hit,
