@@ -57,3 +57,7 @@ Status: CONFIRMED = read in a source during this project. VERIFY = recalled, che
 - Optimistic at low altitude: the truth camera renders the same 5 cm model the onboard 5 cm model is derived from (plus 2 cm noise). Real centimetre-scale terrain not in any model is absent here. Do not compare the low-altitude centimetre errors directly with the mission's 3.5 cm predicted-vs-actual contact figure.
 - Bug found and fixed on the way: one-sided cropping when downsampling the onboard DTM shifted it ~10 cm (0.3 m navigation bias).
 - Filter design choices that are ASSUMPTIONS: 41x41 px templates, +-14 px search, 12 landmarks, 20 s frame cadence, attitude known exactly, landmark-height uncertainty = max(3 cm, 0.4 x model resolution).
+
+## Render performance notes
+- Dataset render on a T4: 82 frames/min after moving per-pixel positions to a GPU ray caster (was 4 frames/min with Blender's position pass). Full 4,500-frame dataset in about an hour.
+- Lit-image render without positions (what navigation needs): 0.33 s per frame on a T4.

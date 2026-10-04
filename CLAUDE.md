@@ -36,3 +36,9 @@ No PyTorch wheels exist for Windows ARM64. For local smoke tests there is an emu
 
 ## Web
 `web/` is Vite + React + TS. Rollup's native binary does not load on Windows ARM, so `package.json` overrides rollup with `@rollup/wasm-node`. Build: `cd web && npm run build`. Replay data lives in `web/public/data` (written by `python -m touchdown.analysis.export_replays`). Deploy workflow: `.github/workflows/pages.yml` (Pages must be enabled in repo settings, source = GitHub Actions).
+
+## Render performance (measured)
+- Blender Cycles beauty render, 640x480, 16 spp: 0.3 s on a Colab T4, ~1.3 s on the 8-core laptop CPU (with `use_persistent_data`).
+- Blender's position pass is ~13 s/frame on the T4 (cause not found; not a shader recompile and not a settings change). So per-pixel positions come from a PyTorch heightfield ray caster (`touchdown/render/raycast_torch.py`), validated against the NumPy one to <1 cm. The Blender position pass remains as the CPU/no-torch fallback.
+- NFT template rendering is batched across landmarks and uses `touchdown/nav/raycast_gpu.py` when a GPU exists (`TOUCHDOWN_NAV_GPU=0` disables, `=cpu` forces torch on CPU for tests).
+- Colab: run long jobs as `nohup ... &` from the Colab terminal (more robust than notebook cells).
