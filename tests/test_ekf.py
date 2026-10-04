@@ -86,3 +86,20 @@ def test_landmark_height_uncertainty_widens_posterior_for_off_nadir_landmarks():
     a.update_pixels(CAM, R, L, uv, sigma_px=0.5)
     b.update_pixels(CAM, R, L, uv, sigma_px=0.5, sigma_lz=0.15)
     assert np.trace(b.P[:3, :3]) > np.trace(a.P[:3, :3])
+
+
+def test_joint_update_matches_sequential_when_errors_are_independent_and_widens_when_common():
+    rng = np.random.default_rng(7)
+    true = np.array([0.0, 0.0, 25.0])
+    R = look_at(true, np.array([0.0, 0.0, 0.0]))
+    L = landmarks(rng, 8)
+    uv = measure(true, R, L, rng, 0.0)
+    P0 = np.diag([0.4 ** 2] * 3 + [0.05 ** 2] * 3)
+    a = NavEKF(FRAME, np.r_[true, np.zeros(3)], P0)
+    b = NavEKF(FRAME, np.r_[true, np.zeros(3)], P0)
+    c = NavEKF(FRAME, np.r_[true, np.zeros(3)], P0)
+    a.update_pixels(CAM, R, L, uv, sigma_px=0.5)
+    b.update_pixels(CAM, R, L, uv, sigma_px=0.5, common_xy_m=1e-9)       # joint path, no correlation
+    c.update_pixels(CAM, R, L, uv, sigma_px=0.5, common_xy_m=0.02, common_z_m=0.03)
+    assert np.allclose(a.P[:3, :3], b.P[:3, :3], rtol=1e-4, atol=1e-8)
+    assert np.trace(c.P[:3, :3]) > 1.5 * np.trace(a.P[:3, :3])           # correlated error stops averaging out

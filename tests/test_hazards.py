@@ -43,3 +43,14 @@ def test_power_law_mle_recovers_slope():
     d = dmin * (1 - u) ** (1 / alpha)   # inverse CDF of N(>D) = (D/dmin)^alpha
     est, sig, n = fit_cumulative_slope(d, dmin)
     assert abs(est - alpha) < 0.1
+
+
+def test_touching_rocks_are_split_but_single_rock_is_not():
+    from touchdown.terrain.hazards import split_touching
+    yy, xx = np.mgrid[0:200, 0:300]
+    two = ((yy - 100) ** 2 + (xx - 100) ** 2 < 30 ** 2) | ((yy - 100) ** 2 + (xx - 155) ** 2 < 30 ** 2)   # overlapping discs
+    ids, n = split_touching(two, RES)
+    assert n == 2 and len(np.unique(ids[two])) == 2
+    one = ((yy - 100) ** 2 + (xx - 150) ** 2 < 35 ** 2)
+    ids1, n1 = split_touching(one, RES)
+    assert n1 == 1

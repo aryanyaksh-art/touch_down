@@ -20,6 +20,8 @@ class NFTConfig:
     min_sep_px: float = 70.0
     sigma_px: float = 0.6       # correlation (matching) noise floor [px]; ASSUMPTION, check against NEES
     model_err_m: float = 0.03   # onboard terrain-model error [m] converted to pixels at each landmark's range; ASSUMPTION
+    common_xy_m: float = 0.012  # lateral model error shared by all landmarks in a frame [m]; ASSUMPTION calibrated on NEES
+    common_z_frac: float = 0.5  # shared height error as a fraction of the per-landmark height sigma; ASSUMPTION
     corr_factor: float = 1.5    # inflation for errors that are correlated across landmarks (sun, DTM), which sequential
                                 # independent updates would otherwise treat as averaging out
     min_peak: float = 0.55
@@ -63,5 +65,6 @@ def nft_update(ekf: NavEKF, model: OnboardModel, cam: Camera, image_linear: np.n
         ranges = np.linalg.norm(np.array(lms) - ekf.pos, axis=1)
         sig = cfg.corr_factor * np.sqrt(cfg.sigma_px ** 2 + (cfg.model_err_m * f_px / ranges) ** 2)
         res.report = ekf.update_pixels(cam, R_local_from_cam, np.array(lms), np.array(uvs), sig,
-                                       sigma_lz=max(cfg.model_err_m, 0.4 * hf.res))
+                                       sigma_lz=max(cfg.model_err_m, 0.4 * hf.res), common_xy_m=cfg.common_xy_m,
+                                       common_z_m=cfg.common_z_frac * max(cfg.model_err_m, 0.4 * hf.res))
     return res

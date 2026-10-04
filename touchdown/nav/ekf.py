@@ -43,12 +43,20 @@ class NavEKF:
         self.P = Phi @ self.P @ Phi.T + Q
 
     def update_pixels(self, cam: Camera, R_local_from_cam: np.ndarray, landmarks: np.ndarray, uv_meas: np.ndarray,
-                      sigma_px, gate: float = CHI2_2DOF_99, sigma_lz=0.0) -> UpdateReport:
+                      sigma_px, gate: float = CHI2_2DOF_99, sigma_lz=0.0, common_xy_m: float = 0.0,
+                      common_z_m: float = 0.0) -> UpdateReport:
         """Sequential update with one 2-D pixel measurement per landmark (known local-frame position).
 
         sigma_px: pixel noise (scalar or per landmark). sigma_lz: 1-sigma error of each landmark's height in the
         onboard model [m]; it enters as a rank-1 term through d(pixel)/d(landmark z), i.e. parallax, which grows
-        with the landmark's distance from nadir."""
+        with the landmark's distance from nadir.
+
+        common_xy_m / common_z_m: 1-sigma of a lateral / height error SHARED by all landmarks in this frame (terrain-model
+        errors are spatially correlated, so they do not average out over landmarks). When either is non-zero the
+        accepted landmarks are fused jointly with the correlated covariance instead of one at a time."""
+        if common_xy_m > 0 or common_z_m > 0:
+            return self._update_joint(cam, R_local_from_cam, landmarks, uv_meas, sigma_px, gate, sigma_lz,
+                                      common_xy_m, common_z_m)
         rep = UpdateReport()
         Rt = R_local_from_cam.T
         f = cam.f_px
@@ -79,4 +87,51 @@ class NavEKF:
             self.P = I_KH @ self.P @ I_KH.T + K @ Rm @ K.T   # Joseph form
             rep.n_used += 1
             rep.nis.append(nis)
+        return rep
+
+    def _update_joint(self, cam, R_local_from_cam, landmarks, uv_meas, sigma_px, gate, sigma_lz, cxy, cz) -> UpdateReport:
+        rep = UpdateReport()
+        Rt = R_local_from_cam.T
+        f = cam.f_px
+        n = len(landmarks)
+        sig = np.broadcast_to(np.asarray(sigma_px, float), (n,))
+        slz = np.broadcast_to(np.asarray(sigma_lz, float), (n,))
+        rows, ys, Hs, gs, cs, Ds = [], [], [], [], [], []
+        for L, z, sg, sz in zip(landmarks, uv_meas, sig, slz):
+            pc = Rt @ (L - self.x[:3])
+            if pc[2] <= 0.1:
+                rep.n_rejected += 1
+                continue
+            uv_pred = cam.project(pc[None])[0]
+            J = np.array([[f / pc[2], 0, -f * pc[0] / pc[2] ** 2], [0, f / pc[2], -f * pc[1] / pc[2] ** 2]])
+            H = np.zeros((2, 6))
+            H[:, :3] = -J @ Rt
+            g = J @ Rt[:, 2]
+            D = (sg ** 2) * np.eye(2) + sz ** 2 * np.outer(g, g)
+            y = z - uv_pred
+            # per-landmark gate with the independent covariance only (robust to a bad correlation peak)
+            S = H @ self.P @ H.T + D
+            if float(y @ np.linalg.solve(S, y)) > gate:
+                rep.n_rejected += 1
+                continue
+            ys.append(y); Hs.append(H); gs.append(g); cs.append(f / pc[2]); Ds.append(D)
+        m = len(ys)
+        if m == 0:
+            return rep
+        y = np.concatenate(ys)
+        H = np.vstack(Hs)
+        Rm = np.zeros((2 * m, 2 * m))
+        for i in range(m):
+            Rm[2 * i:2 * i + 2, 2 * i:2 * i + 2] = Ds[i]
+            for j in range(m):
+                blk = (cxy ** 2) * cs[i] * cs[j] * np.eye(2) + (cz ** 2) * np.outer(gs[i], gs[j])
+                Rm[2 * i:2 * i + 2, 2 * j:2 * j + 2] += blk
+        S = H @ self.P @ H.T + Rm
+        K = self.P @ H.T @ np.linalg.inv(S)
+        self.x = self.x + K @ y
+        I_KH = np.eye(6) - K @ H
+        self.P = I_KH @ self.P @ I_KH.T + K @ Rm @ K.T
+        nis = float(y @ np.linalg.solve(S, y))
+        rep.n_used = m
+        rep.nis = [nis / m] * m          # mean per landmark; chi-square with 2m dof overall
         return rep
