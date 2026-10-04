@@ -64,7 +64,7 @@ flowchart LR
 - [x] Blender renderer with pixel-exact hazard labels
 - [x] Dataset generator: synthetic training terrains, real Nightingale held out as the test set
 - [ ] Render the full dataset on Colab ([notebook](notebooks/01_render_dataset.ipynb))
-- [ ] U-Net hazard detector
+- [x] U-Net hazard detector code (trained on Colab: [notebook](notebooks/02_train_unet.ipynb)); training run pending
 - [x] NFT navigation filter (open-loop test passes; closed-loop and Monte Carlo pending)
 - [ ] Descent controller (Checkpoint, Matchpoint, back-away)
 - [ ] 1,000-landing Monte Carlo vs. published data

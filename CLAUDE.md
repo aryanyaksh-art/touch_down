@@ -30,3 +30,6 @@ Data in `%LOCALAPPDATA%TouchDowndata`: site OBJ, global OBJ, `nightingale_dtm_5c
 - Worker outputs radiance (Lambertian, albedo 0.044) and a per-pixel local-xyz position map; hazard labels are looked up from the position map (`touchdown/dataset/labels.py`).
 - Verified: every hit point lies on its pixel ray to 0.0000 deg (scripts/render_demo.py).
 - Speed on this laptop: ~7-13 s per 640x480 frame (16 spp, CPU). Bulk rendering goes to Colab GPU.
+
+## Torch
+No PyTorch wheels exist for Windows ARM64. For local smoke tests there is an emulated x64 env at `%LOCALAPPDATA%\TouchDownenv-torch` (run with `PYTHONPATH=. <venv>/Scripts/python.exe -m pytest`). Real training runs on Colab. torch tests use `pytest.importorskip`.
