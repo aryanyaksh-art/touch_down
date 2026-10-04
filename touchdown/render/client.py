@@ -61,13 +61,15 @@ class BlenderRenderer:
         raise RuntimeError("Blender exited:\n" + "".join(self._log[-30:]))
 
     def render(self, cam: Camera, cam_pos, R_local_from_cam, sun_dir, albedo: float = 0.044,
-               sun_strength: float = 1.0, samples: int | None = None) -> dict:
-        """Returns {'rgb': (h,w,3) float32 linear, 'pos': (h,w,3) float32 local xyz (NaN = no surface)}."""
+               sun_strength: float = 1.0, samples: int | None = None, want_pos: bool = True) -> dict:
+        """Returns {'rgb': (h,w,3) float32 linear, 'pos': (h,w,3) float32 local xyz (NaN = no surface); pos is a 1x1
+        NaN placeholder when want_pos is False."""
         self._n += 1
         out = self.tmp / f"f{self._n}.npz"
         req = {"id": self._n, "out": str(out), "cam_pos": list(map(float, cam_pos)),
                "R": np.asarray(R_local_from_cam).tolist(), "hfov_deg": cam.hfov_deg, "w": cam.width, "h": cam.height,
-               "sun_dir": list(map(float, sun_dir)), "albedo": albedo, "sun_strength": sun_strength}
+               "sun_dir": list(map(float, sun_dir)), "albedo": albedo, "sun_strength": sun_strength,
+               "want_pos": want_pos}
         if samples:
             req["samples"] = samples
         self.proc.stdin.write(json.dumps(req) + "\n")

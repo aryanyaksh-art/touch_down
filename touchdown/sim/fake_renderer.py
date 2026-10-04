@@ -13,7 +13,7 @@ class FakeRenderer:
     def __init__(self, truth: HeightField):
         self.hf = truth
 
-    def render(self, cam: Camera, cam_pos, R_local_from_cam, sun_dir, **_):
+    def render(self, cam: Camera, cam_pos, R_local_from_cam, sun_dir, **_):  # accepts want_pos etc.; always returns pos
         vs, us = np.mgrid[0:cam.height, 0:cam.width]
         uv = np.c_[us.ravel() + 0.5, vs.ravel() + 0.5]
         rays = (R_local_from_cam @ cam.unproject(uv).T).T

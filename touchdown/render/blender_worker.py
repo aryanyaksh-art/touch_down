@@ -186,12 +186,15 @@ def main():
         scene.cycles.filter_width = 1.5
         beauty = render_to_array(scene, w, h, req["out"] + ".beauty.exr")
 
-        terrain.data.materials[0] = mat_pos  # 1 spp + tiny filter = point-sampled at pixel centres
-        scene.cycles.samples = 1
-        scene.cycles.filter_width = 0.01
-        posr = render_to_array(scene, w, h, req["out"] + ".pos.exr")
-        pos = posr[..., :3] - POS_OFFSET
-        pos[posr[..., 3] < 0.5] = np.nan
+        if req.get("want_pos", True):
+            terrain.data.materials[0] = mat_pos  # 1 spp + tiny filter = point-sampled at pixel centres
+            scene.cycles.samples = 1
+            scene.cycles.filter_width = 0.01
+            posr = render_to_array(scene, w, h, req["out"] + ".pos.exr")
+            pos = posr[..., :3] - POS_OFFSET
+            pos[posr[..., 3] < 0.5] = np.nan
+        else:  # navigation needs only the lit image; skipping the position pass halves the render cost
+            pos = np.full((1, 1, 3), np.nan, np.float32)
         for suffix in (".beauty.exr", ".pos.exr"):
             try:
                 import os

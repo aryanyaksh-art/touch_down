@@ -7,6 +7,7 @@ from dataclasses import dataclass, field
 
 import numpy as np
 
+from touchdown.dataset.labels import pixel_labels
 from touchdown.gnc.backaway import clearance_map, hazard_probability, predict_contact
 from touchdown.gnc.dynamics import SiteFrame
 from touchdown.gnc.targeting import solve_ballistic_to_target
@@ -107,18 +108,22 @@ def fly(site: SiteAssets, renderer, cam: Camera, cfg: SimConfig, seed: int, net=
     result: dict = {"seed": seed, "sun_az": az, "sun_el": el, "target": tgt.tolist()}
     while True:
         alt_true = x_true[2]
-        f = renderer.render(cam, x_true, R, sun_true)
+        f = renderer.render(cam, x_true, R, sun_true, want_pos=record)
         rgb = f["rgb"]
         nft = nft_update(ekf, onboard, cam, rgb[..., 0].astype(np.float64), R, sun_nav, cfg.nft)
         err = ekf.pos - x_true
         entry = {"t": t, "alt": float(alt_true), "true": x_true.tolist(), "est": ekf.pos.tolist(),
                  "err": float(np.linalg.norm(err)), "sigma_xy": np.sqrt(np.diag(ekf.P[:2, :2])).tolist(),
                  "matched": nft.n_matched, "used": nft.report.n_used}
+        if record:
+            entry["features"] = nft.features
         # neural hazard detector -> live hazard grid (extension; not part of the real mission)
         if net is not None and ekf.pos[2] <= cfg.nn_max_alt_m:
             u8 = _gamma_u8(rgb)
-            _, probs = net.predict(u8)
+            nn_cls, probs = net.predict(u8)
             p_haz = 1.0 - probs[0]
+            if record:
+                entry["nn_u8"] = nn_cls
             stride = 4
             vs, us = np.mgrid[stride // 2:cam.height:stride, stride // 2:cam.width:stride]
             uv = np.c_[us.ravel() + 0.5, vs.ravel() + 0.5]
@@ -131,6 +136,7 @@ def fly(site: SiteAssets, renderer, cam: Camera, cfg: SimConfig, seed: int, net=
             entry["nn_projected"] = int(ok.sum())
         if record:
             entry["image_u8"] = _gamma_u8(rgb)
+            entry["labels_u8"] = pixel_labels(f["pos"], site.hazards.classes, res)
         log.append(entry)
 
         # Matchpoint-style burn, computed from the estimate

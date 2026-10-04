@@ -33,6 +33,7 @@ class NFTResult:
     n_matched: int = 0
     peaks: list = field(default_factory=list)
     residuals_px: list = field(default_factory=list)   # (du, dv) of accepted matches
+    features: list = field(default_factory=list)       # (u_pred, v_pred, u_meas, v_meas) per accepted match
 
 
 def nft_update(ekf: NavEKF, model: OnboardModel, cam: Camera, image_linear: np.ndarray,
@@ -56,6 +57,7 @@ def nft_update(ekf: NavEKF, model: OnboardModel, cam: Camera, image_linear: np.n
         uvs.append(uv + np.array([m.du, m.dv]))
         res.peaks.append(m.peak)
         res.residuals_px.append((m.du, m.dv))
+        res.features.append((float(uv[0]), float(uv[1]), float(uv[0] + m.du), float(uv[1] + m.dv)))
     res.n_matched = len(lms)
     if lms:
         ranges = np.linalg.norm(np.array(lms) - ekf.pos, axis=1)

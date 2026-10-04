@@ -33,3 +33,6 @@ Data in `%LOCALAPPDATA%TouchDowndata`: site OBJ, global OBJ, `nightingale_dtm_5c
 
 ## Torch
 No PyTorch wheels exist for Windows ARM64. For local smoke tests there is an emulated x64 env at `%LOCALAPPDATA%/TouchDown/venv-torch` (run with `PYTHONPATH=. <venv>/Scripts/python.exe -m pytest`). Real training runs on Colab. torch tests use `pytest.importorskip`.
+
+## Web
+`web/` is Vite + React + TS. Rollup's native binary does not load on Windows ARM, so `package.json` overrides rollup with `@rollup/wasm-node`. Build: `cd web && npm run build`. Replay data lives in `web/public/data` (written by `python -m touchdown.analysis.export_replays`). Deploy workflow: `.github/workflows/pages.yml` (Pages must be enabled in repo settings, source = GitHub Actions).
