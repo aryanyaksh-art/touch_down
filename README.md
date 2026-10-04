@@ -6,7 +6,7 @@
 A from-scratch recreation of the autonomous sample collection NASA's OSIRIS-REx performed at asteroid Bennu.
 
 [![tests](https://github.com/aryanyaksh-art/touch_down/actions/workflows/tests.yml/badge.svg)](https://github.com/aryanyaksh-art/touch_down/actions/workflows/tests.yml)
-![python](https://img.shields.io/badge/python-3.12-blue)
+![python](https://img.shields.io/badge/python-3.12%2B-blue)
 ![status](https://img.shields.io/badge/status-in%20development-orange)
 
 <img src="docs/img/nightingale.png" width="780" alt="Nightingale terrain and hazard map">
@@ -14,6 +14,12 @@ A from-scratch recreation of the autonomous sample collection NASA's OSIRIS-REx 
 <sub>Nightingale, OSIRIS-REx's sample site, from NASA's public 5 cm terrain model. Right: ground-truth hazards used for labels.</sub>
 
 </div>
+
+### Synthetic camera frames and labels
+
+<img src="docs/img/render_demo.png" width="780" alt="Rendered frames at 10, 25 and 50 m with hazard labels">
+
+<sub>Top: rendered NavCam-style frames at 10, 25 and 50 m. Bottom: labels (boulders yellow, steep ground red), looked up from the 3D position under each pixel so they register exactly.</sub>
 
 ## Why
 
@@ -43,7 +49,8 @@ flowchart LR
 ## Status
 
 - [x] Nightingale 5 cm terrain, height grid, ground-truth hazard map
-- [ ] Blender renderer and labeled image dataset
+- [x] Blender renderer with pixel-exact hazard labels
+- [ ] Labeled image dataset at scale
 - [ ] U-Net hazard detector
 - [ ] NFT navigation filter
 - [ ] Descent controller (Checkpoint, Matchpoint, back-away)

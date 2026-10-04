@@ -1,0 +1,4 @@
+# Navigation camera (OSIRIS-REx TAGCAMS NavCam). Render resolution is reduced for dataset/Monte Carlo cost.
+sensor_native_px: [2592, 1944]   # VERIFY (Bos et al. 2018, TAGCAMS)
+hfov_deg: 44.0                   # VERIFY (Bos et al. 2018). Square pixels assumed; vertical FOV follows from aspect.
+render_px: [640, 480]

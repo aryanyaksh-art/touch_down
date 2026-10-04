@@ -2,7 +2,7 @@
 name = "touchdown"
 version = "0.1.0"
 description = "Recreation of OSIRIS-REx autonomous TAG at Bennu (NFT + hazard-map back-away + NN hazard detection)"
-requires-python = ">=3.12,<3.13"
+requires-python = ">=3.12"
 dependencies = [
     "numpy",
     "scipy",
