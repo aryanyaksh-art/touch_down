@@ -32,6 +32,28 @@ Train and validation terrains are synthetic; the test terrain is the real Nighti
 
 The drop from 0.60 to 0.26 boulder IoU between synthetic and real terrain is the sim-to-real gap: injected boulders are smooth half-ellipsoids and real ones are angular. Validation on synthetic terrain overstates real performance. The real-terrain row is the number to quote.
 
+### 3b. Diagnosis of the real-terrain failure (task-aligned evaluation, `touchdown/vision/evaluate.py`)
+
+Run on the real-Nightingale test frames (300). Two natural hypotheses were tested and **both rejected**: that the headline score is dragged down by high-altitude frames the detector is not used on, and that it only misses small rocks near the 21 cm threshold.
+
+| Altitude | Frames | mIoU | Boulder IoU | Hazard pixels called safe | Safe called hazard |
+|---|---|---|---|---|---|
+| 0-10 m | 112 | 0.37 | 0.26 | 34.4% | 17.2% |
+| 10-22 m | 105 | 0.38 | 0.22 | 26.3% | 23.6% |
+| 22-50 m | 83 | 0.43 | 0.31 | 29.2% | 19.0% |
+
+Boulder recall (an object counts as found if at least half its pixels are labelled boulder), by physical size:
+
+| Altitude | 0.2-0.5 m | 0.5-1 m | 1-2 m | 2-5 m |
+|---|---|---|---|---|
+| 0-10 m | 15% (n=393) | 19% (n=216) | 20% (n=114) | 10% (n=52) |
+| 10-22 m | 12% (n=1435) | 21% (n=737) | 21% (n=369) | 6% (n=176) |
+| 22-50 m | 18% (n=4657) | 33% (n=2594) | 37% (n=1071) | 31% (n=541) |
+
+Threshold sweep, 10-22 m (P(not safe) above t): pixel hazard recall / false-hazard rate = 94% / 67% at t=0.2, 75% / 24% at t=0.5, 52% / 8% at t=0.8.
+
+Findings: (1) performance does not improve at low altitude; (2) recall is low at every size and lowest for the largest boulders at low altitude, so this is not label ambiguity near the 21 cm threshold; (3) moving the threshold trades misses for false alarms along a poor curve, so thresholding or morphological clean-up cannot fix it; (4) the contact-zone metric is uninformative on this tile (100 of 105 frames at 10-22 m have a hazard within 1 m of the aim point), a limitation of the test terrain. The conclusion is a domain gap: the detector has not learned what real boulders look like. The fix is on the data side (angular synthetic boulders, some real training terrain), then the model.
+
 ## 4. End to end (Monte Carlo)
 
 Compared with published figures. Only one real landing exists, so agreement shows plausibility, not equivalence.
