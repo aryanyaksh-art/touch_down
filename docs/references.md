@@ -61,3 +61,8 @@ Status: CONFIRMED = read in a source during this project. VERIFY = recalled, che
 ## Render performance notes
 - Dataset render on a T4: 82 frames/min after moving per-pixel positions to a GPU ray caster (was 4 frames/min with Blender's position pass). Full 4,500-frame dataset in about an hour.
 - Lit-image render without positions (what navigation needs): 0.33 s per frame on a T4.
+
+## Detector results (run unet_v1, final) and provisional Monte Carlo
+- Real Nightingale test: mIoU 0.39, boulder IoU 0.26, 30% of hazard pixels called safe, 20% of safe pixels called hazard. Synthetic validation: mIoU 0.54, boulder IoU 0.60.
+- Provisional Monte Carlo (69 landings): median delivery error 0.31 m, 94% within 1 m, predicted vs. actual contact 3.2 cm median, back-away rate 1.4% (baseline). With the detector: back-away 8.7%, needless 7.2%, hazard contacts unchanged at 1.4%. Final numbers pending the 1,000-landing run.
+- Not yet verified against primary papers: NavCam parameters, exact published delivery-accuracy figure, TAGSAM head radius.
