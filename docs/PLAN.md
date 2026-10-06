@@ -1,3 +1,5 @@
+> **Original plan.** This is the plan the project started from. What was built, what changed, and the current results are in [validation.md](validation.md) and [method.md](method.md). Notable changes: the 5 cm terrain tile is 48 m wide (not 200 m), so simulated descents start at 45 m; training uses synthetic terrain and tests on the real surface; one flight is judged under four prior-map and detector conditions rather than run separately.
+
 # TouchDown — Recreating OSIRIS-REx Autonomous TAG at Bennu (TKS Build)
 
 ## Context

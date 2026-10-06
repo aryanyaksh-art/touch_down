@@ -65,11 +65,11 @@ Compared with published figures. Only one real landing exists, so agreement show
 | Back-away probability before TAG | < 6% | NASA release |
 | Contact speed | 10 cm/s | NASA release |
 
-Boulder statistics: the published size-frequency slope for Bennu (−2.3 to −3.0 at candidate sites) is compared with the slope recovered from the detector's output on the real tile. Because the injected training boulders use −2.9, a match would be partly circular on synthetic terrain; on the real tile it measures detection bias across sizes. (Open: the slope computed directly from the DTM hazard map is too shallow because touching rocks merge; see references.md.)
+Boulder statistics: the published size-frequency slope for Bennu (−2.3 to −3.0 at candidate sites) is compared with the slope recovered from the detector's output on the real tile. Because the injected training boulders use −2.9, a match would be partly circular on synthetic terrain; on the real tile it measures detection bias across sizes. (The slope computed directly from the real tile's hazard map is consistent with the published range above about 0.75 m once touching rocks are split by a watershed; below that the count is incomplete. See references.md.)
 
-## 5. Sensitivity (to do)
+## 5. Sensitivity (script ready; run on the finished Monte Carlo)
 
-Vary the assumed parameters that are not mission values (abort threshold, head radius, stale-map cutoff, correlated-error terms) and report how the conclusions move. A conclusion that depends on one of them should be stated as conditional.
+`python -m touchdown.analysis.sensitivity DIR` re-tests the saved landings without re-flying. Vary the assumed parameters that are not mission values (abort threshold, head radius, stale-map cutoff, correlated-error terms) and report how the conclusions move. A conclusion that depends on one of them should be stated as conditional.
 
 ## 6. Results table
 

@@ -61,7 +61,7 @@ At about 5 m (by the filter's own altitude estimate) the filter's state is propa
 
 ## 9. The neural extension
 
-* U-Net (≈0.5 M parameters at base width 8, ≈7 M at the default 24), 3 classes, trained with weighted cross-entropy + Dice.
+* U-Net (about 4.4 M parameters at the default base width of 24), 3 classes, trained with weighted cross-entropy + Dice.
 * **Train on synthetic, test on real:** training and validation terrains are the real Nightingale ground with its boulders removed and new boulders injected from a power law (slope −2.9, density from the real tile); the real Nightingale surface with real boulders is the held-out test set. The injected boulders are smooth half-ellipsoids, so test performance measures the synthetic-to-real gap.
 * In flight, below 22 m, each frame's non-safe probability is projected onto the terrain with the estimated pose and fused over frames as log-odds. At the decision, the live map is united with the ground map before the clearance test.
 

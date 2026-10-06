@@ -22,14 +22,13 @@ A TKS Build: recreate OSIRIS-REx's autonomous Touch-And-Go (TAG) at Bennu.
 
 ## Environment
 Windows 11, Snapdragon X (ARM64), 16 GB RAM, no NVIDIA GPU. Git Bash and PowerShell available.
-Blender 5.2.2 (Windows ARM64 portable) is at `%LOCALAPPDATA%TouchDowndatablenderblender-5.2.2-windows-arm64blender.exe`; use the same 5.2.2 (linux-x64) on Colab.
-Data in `%LOCALAPPDATA%TouchDowndata`: site OBJ, global OBJ, `nightingale_dtm_5cm.npz`, `nightingale_vertices_m.npy`.
+Blender 5.2.2 (Windows ARM64 portable) is at `%LOCALAPPDATA%/TouchDown/data/blender/blender-5.2.2-windows-arm64/blender.exe`; use the same 5.2.2 (linux-x64) on Colab.
+Data in `%LOCALAPPDATA%/TouchDown/data`: site OBJ, global OBJ, `nightingale_dtm_5cm.npz`, `nightingale_vertices_m.npy`.
 
 ## Renderer notes
 - `Render Result.pixels` is empty in background Blender; the worker round-trips float EXR files instead.
-- Worker outputs radiance (Lambertian, albedo 0.044) and a per-pixel local-xyz position map; hazard labels are looked up from the position map (`touchdown/dataset/labels.py`).
+- Worker outputs radiance (Lambertian, albedo 0.044). Per-pixel positions come from a GPU ray caster on Colab (see Render performance) or Blender's position pass as a fallback; hazard labels are looked up from them (`touchdown/dataset/labels.py`).
 - Verified: every hit point lies on its pixel ray to 0.0000 deg (scripts/render_demo.py).
-- Speed on this laptop: ~7-13 s per 640x480 frame (16 spp, CPU). Bulk rendering goes to Colab GPU.
 
 ## Torch
 No PyTorch wheels exist for Windows ARM64. For local smoke tests there is an emulated x64 env at `%LOCALAPPDATA%/TouchDown/venv-torch` (run with `PYTHONPATH=. <venv>/Scripts/python.exe -m pytest`). Real training runs on Colab. torch tests use `pytest.importorskip`.
@@ -42,3 +41,12 @@ No PyTorch wheels exist for Windows ARM64. For local smoke tests there is an emu
 - Blender's position pass is ~13 s/frame on the T4 (cause not found; not a shader recompile and not a settings change). So per-pixel positions come from a PyTorch heightfield ray caster (`touchdown/render/raycast_torch.py`), validated against the NumPy one to <1 cm. The Blender position pass remains as the CPU/no-torch fallback.
 - NFT template rendering is batched across landmarks and uses `touchdown/nav/raycast_gpu.py` when a GPU exists (`TOUCHDOWN_NAV_GPU=0` disables, `=cpu` forces torch on CPU for tests).
 - Colab: run long jobs as `nohup ... &` from the Colab terminal (more robust than notebook cells).
+
+## Constraints on this machine
+- **Windows Smart App Control now blocks unsigned DLLs, so Python (numpy) cannot run locally.** Do not turn it off (security setting, one-way). Run tests through GitHub Actions CI (push, then `gh run list`) or on Colab. File editing, git and `gh` still work; use `python` (system, stdlib only) for small patch scripts.
+- Inline multi-line scripts in the Bash tool sometimes fail to parse; write a script file and run it instead.
+
+## Colab runbook
+- A fresh runtime: clone the repo, then `sh /content/touch_down/scripts/colab_setup.sh`. Drive must be mounted from a notebook cell (needs the user's consent popup).
+- Persistent state lives on Drive under `MyDrive/touchdown/`: `dataset/`, `runs/<name>/best.pt`, `montecarlo/v1/landing_*.json` (resumable). `/content` is wiped on a disconnect.
+- Long jobs: `nohup ... &` from the Colab terminal; check with `ls`, `tail`, `pgrep`.
