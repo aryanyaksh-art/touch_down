@@ -33,6 +33,10 @@ Calling a hazard safe is the failure that ends a mission; calling safe ground ha
 **Is point-mass gravity adequate?**
 Over a 50 m drop the field error is small compared to the unmodelled-acceleration allowance used (2×10⁻⁶ m/s²), but it was not quantified against a polyhedron model. State this as a limitation.
 
+## The detector result (be upfront)
+
+On the real Nightingale terrain the detector scores boulder IoU 0.26 and misses 30% of hazard pixels; on synthetic validation terrain it scores 0.60. In the Monte Carlo it does not reduce hazard contacts and adds needless back-aways. Likely reasons: synthetic boulders are smooth ellipsoids while real ones are angular, and the experiment's aim point is already well clear of hazards, so there is little to catch. Do not present the detector as an improvement; present it as an extension whose benefit was tested and not demonstrated, with the reasons and the next experiment (harder aim points, angular synthetic boulders).
+
 ## Where the filter is weak (be upfront)
 
 * NEES is above the expected value of 3: the filter is overconfident, especially with the coarse onboard model. The correlated errors (terrain model, sun direction) are not modelled as states. A consider-covariance or state-augmented approach is the proper fix.
