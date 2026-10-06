@@ -70,7 +70,9 @@ def angular_bump(u: np.ndarray, v: np.ndarray, d: float, h: float, rng: np.rando
     top = h * rng.uniform(0.8, 1.0)
     tilt = rng.normal(0, 0.12, 2)
     z = np.minimum(h, top + tilt[0] * u + tilt[1] * v)                         # gently tilted top, never above h
-    for phi, rk, sk in zip(rng.uniform(0, 2 * np.pi, n), 0.5 * d * rng.uniform(0.7, 1.15, n), rng.uniform(1.2, 3.5, n)):
+    # facet azimuths spread around the full circle (random draws can leave a side open, i.e. an unbounded block)
+    phis = rng.uniform(0, 2 * np.pi) + np.arange(n) * 2 * np.pi / n + rng.uniform(-0.35, 0.35, n)
+    for phi, rk, sk in zip(phis, 0.5 * d * rng.uniform(0.7, 1.15, n), rng.uniform(1.2, 3.5, n)):
         z = np.minimum(z, sk * (rk - (u * np.cos(phi) + v * np.sin(phi))))      # facet: zero at distance rk, slope sk
     return z
 
