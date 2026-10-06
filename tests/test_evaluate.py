@@ -24,11 +24,11 @@ def test_perfect_detector_scores_perfectly_and_bins_by_altitude():
     frames = []
     for centre in (True, False):
         lab = scene(centre)
-        frames.append(frame(lab, (lab > 0).astype(float) * 0.95 + 0.02, 5.0))
+        frames.append(frame(lab, (lab > 0).astype(float) * 0.95 + 0.02, 20.0))
         frames.append(frame(lab, (lab > 0).astype(float) * 0.95 + 0.02, 30.0))
     res = evaluate_frames(frames, F_PX)
-    assert set(res) == {"0-10 m", "22-50 m"}
-    low = res["0-10 m"]
+    assert set(res) == {"10-22 m", "22-50 m"}
+    low = res["10-22 m"]
     assert low["n_frames"] == 2 and low["false_safe_rate"] == 0.0
     z = [c for c in low["contact_zone"] if c["threshold"] == 0.5][0]
     assert z["recall"] == 1.0 and z["false_alarm_rate"] == 0.0 and z["frames_with_hazard"] == 1
