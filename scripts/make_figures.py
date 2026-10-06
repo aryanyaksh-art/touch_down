@@ -23,7 +23,7 @@ ax[1].imshow(overlay, origin="lower", extent=ext, alpha=0.55, vmin=1, vmax=2,
              cmap=ListedColormap(["#e8b931", "#d6453d"]))
 cx, cy = dtm.extent_m[0] / 2, dtm.extent_m[1] / 2
 ax[1].add_patch(plt.Circle((cx, cy), 4.0, fill=False, ec="#2fbf71", lw=1.8))
-ax[1].set_title("Hazards: boulders (yellow), steep (red), 8 m zone at patch centre", fontsize=11)
+ax[1].set_title("Hazards: boulders (yellow), steep (red)", fontsize=11)
 for a in ax:
     a.set_xlabel("east (m)"); a.set_ylabel("north (m)")
 plt.tight_layout()
