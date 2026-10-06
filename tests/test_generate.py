@@ -31,3 +31,11 @@ def test_to_image_dtype_range_and_noise():
     img = to_image(rgb, rng)
     assert img.dtype == np.uint8 and img.shape == (48, 64)
     assert img.max() > 150  # auto-exposure brings dark radiance into range
+
+
+def test_sample_pose_x_side_keeps_target_on_one_half():
+    rng = np.random.default_rng(2)
+    for side in (+1, -1):
+        for _ in range(100):
+            _, _, meta = sample_pose(rng, (48.0, 48.0), alt_range=(4.0, 22.0), x_side=side)
+            assert side * meta["target"][0] >= 0.0

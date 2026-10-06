@@ -62,8 +62,23 @@ def remove_rocks(z: np.ndarray, rock_mask: np.ndarray, res_m: float, rng: np.ran
     return (z * (1 - blend) + smooth * blend).astype(np.float32)
 
 
-def stamp(z: np.ndarray, res_m: float, field: BoulderField, rng: np.random.Generator) -> np.ndarray:
-    """Add the boulders to a heightfield (max with the half-ellipsoid surface sitting on the local ground)."""
+def angular_bump(u: np.ndarray, v: np.ndarray, d: float, h: float, rng: np.random.Generator) -> np.ndarray:
+    """Height of an angular block (u, v: metres from its centre): a flat, slightly tilted top of height ~h with 5-8
+    steep planar facets. Real Bennu boulders are angular; smooth ellipsoids are the main sim-to-real gap (the
+    detector trained on ellipsoids finds only ~15-20% of real boulders). Returns heights, <= 0 outside the block."""
+    n = int(rng.integers(5, 9))
+    top = h * rng.uniform(0.8, 1.0)
+    tilt = rng.normal(0, 0.12, 2)
+    z = top + tilt[0] * u + tilt[1] * v                                          # gently tilted top
+    for phi, rk, sk in zip(rng.uniform(0, 2 * np.pi, n), 0.5 * d * rng.uniform(0.7, 1.15, n), rng.uniform(1.2, 3.5, n)):
+        z = np.minimum(z, sk * (rk - (u * np.cos(phi) + v * np.sin(phi))))      # facet: zero at distance rk, slope sk
+    return z
+
+
+def stamp(z: np.ndarray, res_m: float, field: BoulderField, rng: np.random.Generator,
+          shape: str = "ellipsoid") -> np.ndarray:
+    """Add the boulders to a heightfield, sitting on the local ground. shape: 'ellipsoid' (smooth half-ellipsoids),
+    'angular' (faceted blocks), or 'mixed' (each boulder is one or the other with equal probability)."""
     out = z.copy()
     ny, nx = z.shape
     for x, y, d, h, ar, th in zip(field.x, field.y, field.diameter, field.height, field.aspect, field.theta):
@@ -79,19 +94,23 @@ def stamp(z: np.ndarray, res_m: float, field: BoulderField, rng: np.random.Gener
         X, Y = np.meshgrid(gx, gy)
         u = X * np.cos(th) + Y * np.sin(th)
         v = -X * np.sin(th) + Y * np.cos(th)
-        q = 1.0 - (u / a) ** 2 - (v / b) ** 2
-        inside = q > 0
+        if shape == "angular" or (shape == "mixed" and rng.random() < 0.5):
+            bump = angular_bump(u, v, d, h, rng)
+            inside = bump > 0
+        else:
+            q = 1.0 - (u / a) ** 2 - (v / b) ** 2
+            inside = q > 0
+            bump = h * np.sqrt(np.where(inside, q, 0.0)) * (1.0 + 0.05 * rng.standard_normal())
         if not inside.any():
             continue
         ground = np.median(out[rs:re, cs:ce][inside])  # local ground level under the rock
-        bump = h * np.sqrt(np.where(inside, q, 0.0)) * (1.0 + 0.05 * rng.standard_normal())
         patch = out[rs:re, cs:ce]
         patch[inside] = np.maximum(patch[inside], ground + bump[inside] - 0.15 * h)  # embed ~15% of the height
     return out
 
 
 def make_terrain(z_real: np.ndarray, rock_mask: np.ndarray, res_m: float, seed: int, slope: float = -2.9,
-                 density_per_m2: float = 0.055) -> np.ndarray:
+                 density_per_m2: float = 0.055, shape: str = "ellipsoid") -> np.ndarray:
     """One synthetic realization: random rotation/mirror of the cleaned real ground plus a fresh boulder field."""
     rng = np.random.default_rng(seed)
     ground = remove_rocks(z_real, rock_mask, res_m, rng)
@@ -102,4 +121,4 @@ def make_terrain(z_real: np.ndarray, rock_mask: np.ndarray, res_m: float, seed: 
     ground = np.ascontiguousarray(ground)
     extent = (ground.shape[1] * res_m, ground.shape[0] * res_m)
     field = make_field(extent, rng, slope=slope, density_per_m2=density_per_m2)
-    return stamp(ground, res_m, field, rng)
+    return stamp(ground, res_m, field, rng, shape)

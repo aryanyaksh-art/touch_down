@@ -31,6 +31,7 @@ except ImportError:  # no torch (e.g. Windows on Arm): fall back to Blender's po
 
 ROOT = Path(__file__).resolve().parents[2]
 SPLIT_SEED_OFFSET = {"train": 0, "val": 10_000}  # synthetic seeds never overlap between splits
+REAL_HALF = {"real_train": -1, "real_test": +1}   # spatial split of the real tile: west trains, east tests
 
 
 def sun_vector(az_deg: float, el_deg: float) -> np.ndarray:
@@ -39,12 +40,15 @@ def sun_vector(az_deg: float, el_deg: float) -> np.ndarray:
     return np.array([np.sin(az) * np.cos(el), np.cos(az) * np.cos(el), np.sin(el)])
 
 
-def sample_pose(rng: np.random.Generator, extent_m: tuple[float, float], alt_range=(4.0, 45.0), max_tilt_deg=15.0):
-    """Camera looking near-nadir at a random target. Returns (position, R_local_from_cam, meta)."""
+def sample_pose(rng: np.random.Generator, extent_m: tuple[float, float], alt_range=(4.0, 45.0), max_tilt_deg=15.0,
+                x_side: int = 0):
+    """Camera looking near-nadir at a random target. Returns (position, R_local_from_cam, meta).
+    x_side = +1 / -1 restricts the target to the east / west half (for the spatial real-terrain split)."""
     alt = float(np.exp(rng.uniform(np.log(alt_range[0]), np.log(alt_range[1]))))  # log-uniform: more low frames
     margin = 0.5 * alt
     lim = np.maximum(np.array(extent_m) / 2.0 - margin, 0.0)
-    target = np.array([rng.uniform(-lim[0], lim[0]), rng.uniform(-lim[1], lim[1]), 0.0])
+    x0, x1 = (0.0, lim[0]) if x_side > 0 else ((-lim[0], 0.0) if x_side < 0 else (-lim[0], lim[0]))
+    target = np.array([rng.uniform(x0, x1), rng.uniform(-lim[1], lim[1]), 0.0])
     tilt, az = np.radians(rng.uniform(0, max_tilt_deg)), rng.uniform(0, 2 * np.pi)
     pos = target + alt * np.array([np.sin(tilt) * np.cos(az), np.sin(tilt) * np.sin(az), np.cos(tilt)])
     roll = rng.uniform(0, 2 * np.pi)
@@ -62,17 +66,17 @@ def to_image(rgb: np.ndarray, rng: np.random.Generator, blur_sigma: float = 0.0)
     return (np.clip(img, 0, 1) * 255 + 0.5).astype(np.uint8)
 
 
-def build_terrain(real: DTM, hazard_cfg: dict, name: str, seed: int | None) -> DTM:
+def build_terrain(real: DTM, hazard_cfg: dict, name: str, seed: int | None, shape: str = "ellipsoid") -> DTM:
     if seed is None:  # real Nightingale
         return real
     hm = build_hazard_map(real.z, real.res_m, hazard_cfg)
     rock = hm.rock_height >= hazard_cfg["hazard_object_size_m"]
-    z = make_terrain(real.z, rock, real.res_m, seed=seed)
+    z = make_terrain(real.z, rock, real.res_m, seed=seed, shape=shape)
     return DTM(z, real.res_m, real.origin_body, real.R_body_from_local)
 
 
 def generate(out_dir: Path, split: str, terrain_ids: list[int], frames: int, seed: int, device: str = "CPU",
-             samples: int = 16, min_hit: float = 0.85) -> None:
+             samples: int = 16, min_hit: float = 0.85, shape: str = "ellipsoid") -> None:
     hazard_cfg = yaml.safe_load(open(ROOT / "configs" / "hazards.yaml"))
     cam_cfg = yaml.safe_load(open(ROOT / "configs" / "camera.yaml"))
     cam = Camera(cam_cfg["render_px"][0], cam_cfg["render_px"][1], cam_cfg["hfov_deg"])
@@ -83,13 +87,14 @@ def generate(out_dir: Path, split: str, terrain_ids: list[int], frames: int, see
     meta_path = out_dir / "meta.jsonl"
 
     for tid in terrain_ids:
-        is_real = split == "test"
-        name = "real" if is_real else f"{split}{tid:04d}"
+        half = REAL_HALF.get(split)
+        is_real = split == "test" or half is not None
+        name = "real" if split == "test" else (split if half is not None else f"{split}{tid:04d}")
         done = {json.loads(l)["frame"] for l in open(meta_path)} if meta_path.exists() else set()
         todo = [k for k in range(frames) if f"{name}_{k:03d}" not in done]
         if not todo:
             continue
-        dtm = build_terrain(real, hazard_cfg, name, None if is_real else SPLIT_SEED_OFFSET[split] + tid)
+        dtm = build_terrain(real, hazard_cfg, name, None if is_real else SPLIT_SEED_OFFSET[split] + tid, shape)
         hm = build_hazard_map(dtm.z, dtm.res_m, hazard_cfg)
         tpath = out_dir / "terrains" / f"{name}.npz"
         dtm.save(tpath)
@@ -97,16 +102,27 @@ def generate(out_dir: Path, split: str, terrain_ids: list[int], frames: int, see
         with BlenderRenderer(tpath, samples=samples, device=device) as r:
             for k in todo:
                 rng = np.random.default_rng([seed, zlib.crc32(name.encode()), k])
+                accepted = False
                 for _ in range(8):
-                    pos, R, meta = sample_pose(rng, (dtm.z.shape[1] * dtm.res_m, dtm.z.shape[0] * dtm.res_m))
+                    pos, R, meta = sample_pose(rng, (dtm.z.shape[1] * dtm.res_m, dtm.z.shape[0] * dtm.res_m),
+                                               alt_range=(4.0, 22.0) if half is not None else (4.0, 45.0),
+                                               x_side=half or 0)
                     az, el = rng.uniform(0, 360), rng.uniform(15, 70)
                     f = r.render(cam, pos, R, sun_vector(az, el), want_pos=surface_positions is None)
                     if surface_positions is not None:
                         f["pos"] = surface_positions(dtm.z, dtm.res_m, cam, pos, R)
                     labels = pixel_labels(f["pos"], hm.classes, dtm.res_m)
                     hit = float((labels != IGNORE).mean())
-                    if hit >= min_hit:
+                    ok_half = True
+                    if half is not None:   # the whole footprint must stay on this half of the tile (no leakage)
+                        xs = f["pos"][..., 0]
+                        xs = xs[np.isfinite(xs)]
+                        ok_half = bool(len(xs)) and (xs.min() >= -0.25 if half > 0 else xs.max() <= 0.25)
+                    if hit >= min_hit and ok_half:
+                        accepted = True
                         break
+                if not accepted and half is not None:
+                    continue
                 stem = f"{name}_{k:03d}"
                 Image.fromarray(to_image(f["rgb"], rng, 0.6 if surface_positions is None else 0.0)).save(out_dir / "images" / f"{stem}.png")
                 Image.fromarray(labels).save(out_dir / "labels" / f"{stem}.png")
@@ -122,11 +138,12 @@ def generate(out_dir: Path, split: str, terrain_ids: list[int], frames: int, see
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     ap.add_argument("--out", required=True)
-    ap.add_argument("--split", choices=["train", "val", "test"], required=True)
+    ap.add_argument("--split", choices=["train", "val", "test", "real_train", "real_test"], required=True)
+    ap.add_argument("--shape", choices=["ellipsoid", "angular", "mixed"], default="ellipsoid")
     ap.add_argument("--terrains", nargs=2, type=int, default=[0, 1], help="terrain id range [start, stop)")
     ap.add_argument("--frames", type=int, default=100)
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--device", default="CPU")
     ap.add_argument("--samples", type=int, default=16)
     a = ap.parse_args()
-    generate(Path(a.out), a.split, list(range(*a.terrains)), a.frames, a.seed, a.device, a.samples)
+    generate(Path(a.out), a.split, list(range(*a.terrains)), a.frames, a.seed, a.device, a.samples, shape=a.shape)

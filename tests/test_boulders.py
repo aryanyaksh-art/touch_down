@@ -58,3 +58,29 @@ def test_make_terrain_deterministic():
     b = make_terrain(z, z > 1, RES, seed=5)
     c = make_terrain(z, z > 1, RES, seed=6)
     assert np.array_equal(a, b) and not np.array_equal(a, c)
+
+
+def test_angular_boulders_are_faceted_not_elliptical_and_respect_height():
+    from touchdown.terrain.boulders import angular_bump
+    g = np.arange(-120, 121) * RES
+    U, V = np.meshgrid(g, g)
+    areas, spread = [], []
+    for i in range(40):
+        z = angular_bump(U, V, d=2.0, h=0.7, rng=np.random.default_rng(i))
+        inside = z > 0
+        assert inside.any() and z.max() <= 0.7 + 1e-9
+        areas.append(inside.sum() * RES ** 2)
+        edge = (inside & ~np.roll(inside, 1, 0)) | (inside & ~np.roll(inside, 1, 1))
+        rr = np.hypot(U[edge], V[edge])
+        spread.append(rr.std() / max(rr.mean(), 1e-9))
+    assert np.mean(spread) > 0.06                     # an ideal circle would be ~0
+    assert 0.2 < np.mean(areas) < 6.0                 # footprint of a ~2 m rock, in m^2
+
+
+def test_stamp_shapes_all_produce_hazards_and_differ():
+    z0 = np.zeros((400, 400), np.float32)
+    f = make_field((20.0, 20.0), np.random.default_rng(3))
+    outs = {s: stamp(z0, RES, f, np.random.default_rng(1), shape=s) for s in ("ellipsoid", "angular", "mixed")}
+    for o in outs.values():
+        assert (build_hazard_map(o, RES, CFG).classes == BOULDER).sum() > 0
+    assert not np.array_equal(outs["ellipsoid"], outs["angular"])
