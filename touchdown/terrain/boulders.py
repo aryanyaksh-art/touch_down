@@ -69,7 +69,7 @@ def angular_bump(u: np.ndarray, v: np.ndarray, d: float, h: float, rng: np.rando
     n = int(rng.integers(5, 9))
     top = h * rng.uniform(0.8, 1.0)
     tilt = rng.normal(0, 0.12, 2)
-    z = top + tilt[0] * u + tilt[1] * v                                          # gently tilted top
+    z = np.minimum(h, top + tilt[0] * u + tilt[1] * v)                         # gently tilted top, never above h
     for phi, rk, sk in zip(rng.uniform(0, 2 * np.pi, n), 0.5 * d * rng.uniform(0.7, 1.15, n), rng.uniform(1.2, 3.5, n)):
         z = np.minimum(z, sk * (rk - (u * np.cos(phi) + v * np.sin(phi))))      # facet: zero at distance rk, slope sk
     return z
