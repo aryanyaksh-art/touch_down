@@ -60,6 +60,8 @@ def main():
     ap.add_argument("--lr", type=float, default=2e-3)
     ap.add_argument("--base", type=int, default=24)
     ap.add_argument("--max-items", type=int, default=None)
+    ap.add_argument("--train-splits", nargs="+", default=["train"], help="dataset splits to train on (e.g. train real_train)")
+    ap.add_argument("--test-split", default="test", help="held-out real-terrain split to report (test, or real_test)")
     ap.add_argument("--init", default=None, help="start from this checkpoint (e.g. an earlier best.pt) instead of random weights")
     a = ap.parse_args()
     out = Path(a.out)
@@ -68,7 +70,7 @@ def main():
     cam = yaml.safe_load(open(ROOT / "configs" / "camera.yaml"))
     f_px = (cam["render_px"][0] / 2) / np.tan(np.radians(cam["hfov_deg"]) / 2)
 
-    train = HazardDataset(a.data, "train", train=True, max_items=a.max_items)
+    train = HazardDataset(a.data, a.train_splits, train=True, max_items=a.max_items)
     val = HazardDataset(a.data, "val", max_items=a.max_items)
     freq = train.class_frequencies()
     weight = torch.tensor(1.0 / np.sqrt(freq), dtype=torch.float32, device=device)
@@ -113,8 +115,8 @@ def main():
     model.load_state_dict(torch.load(out / "best.pt", map_location=device)["model"])
     results = {"val": evaluate(model, val, device, f_px)}
     try:
-        test = HazardDataset(a.data, "test")
-        results["test_real_nightingale"] = evaluate(model, test, device, f_px)
+        test = HazardDataset(a.data, a.test_split)
+        results[f"test_{a.test_split}"] = evaluate(model, test, device, f_px)
     except FileNotFoundError:
         print("no test split found; skipping real-terrain evaluation")
     json.dump(results, open(out / "results.json", "w"), indent=1)

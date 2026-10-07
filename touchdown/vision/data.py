@@ -11,10 +11,12 @@ from torch.utils.data import Dataset
 class HazardDataset(Dataset):
     """Frames of one split. train=True: random crop, flips, photometric jitter, blur and noise; else full frames."""
 
-    def __init__(self, root: str | Path, split: str, train: bool = False, crop: int = 384, max_items: int | None = None):
+    def __init__(self, root: str | Path, split: "str | list[str]", train: bool = False, crop: int = 384,
+                 max_items: int | None = None):
         self.root, self.train, self.crop = Path(root), train, crop
         rows = [json.loads(l) for l in open(self.root / "meta.jsonl")]
-        self.rows = [r for r in rows if r["split"] == split][:max_items]
+        splits = [split] if isinstance(split, str) else list(split)   # several splits can be combined for training
+        self.rows = [r for r in rows if r["split"] in splits][:max_items]
         if not self.rows:
             raise FileNotFoundError(f"no frames for split '{split}' in {root}")
 

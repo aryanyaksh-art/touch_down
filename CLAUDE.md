@@ -40,7 +40,7 @@ No PyTorch wheels exist for Windows ARM64. For local smoke tests there is an emu
 - Blender Cycles beauty render, 640x480, 16 spp: 0.3 s on a Colab T4, ~1.3 s on the 8-core laptop CPU (with `use_persistent_data`).
 - Blender's position pass is ~13 s/frame on the T4 (cause not found; not a shader recompile and not a settings change). So per-pixel positions come from a PyTorch heightfield ray caster (`touchdown/render/raycast_torch.py`), validated against the NumPy one to <1 cm. The Blender position pass remains as the CPU/no-torch fallback.
 - NFT template rendering is batched across landmarks and uses `touchdown/nav/raycast_gpu.py` when a GPU exists (`TOUCHDOWN_NAV_GPU=0` disables, `=cpu` forces torch on CPU for tests).
-- Colab: run long jobs as `nohup ... &` from the Colab terminal (more robust than notebook cells).
+- Colab: **run long jobs inside a notebook cell** (`!python scripts/overnight.py`, which prints a heartbeat). Jobs started from the Colab terminal with `nohup` do NOT count as activity: the notebook looks idle and the free runtime is shut down after ~90 minutes (this killed two runs). Free Colab also caps a session at ~12 h and has no supported background execution (Google Colab FAQ). For unattended jobs use Kaggle's Save & Run All.
 
 ## Constraints on this machine
 - **Windows Smart App Control now blocks unsigned DLLs, so Python (numpy) cannot run locally.** Do not turn it off (security setting, one-way). Run tests through GitHub Actions CI (push, then `gh run list`) or on Colab. File editing, git and `gh` still work; use `python` (system, stdlib only) for small patch scripts.
@@ -49,4 +49,4 @@ No PyTorch wheels exist for Windows ARM64. For local smoke tests there is an emu
 ## Colab runbook
 - A fresh runtime: clone the repo, then `sh /content/touch_down/scripts/colab_setup.sh`. Drive must be mounted from a notebook cell (needs the user's consent popup).
 - Persistent state lives on Drive under `MyDrive/touchdown/`: `dataset/`, `runs/<name>/best.pt`, `montecarlo/v1/landing_*.json` (resumable). `/content` is wiped on a disconnect.
-- Long jobs: `nohup ... &` from the Colab terminal; check with `ls`, `tail`, `pgrep`.
+- Long jobs: run from a notebook cell (see Render performance note); the terminal is for short checks (`ls`, `tail`, `pgrep`).
