@@ -52,7 +52,24 @@ Boulder recall (an object counts as found if at least half its pixels are labell
 
 Threshold sweep, 10-22 m (P(not safe) above t): pixel hazard recall / false-hazard rate = 94% / 67% at t=0.2, 75% / 24% at t=0.5, 52% / 8% at t=0.8.
 
-Findings: (1) performance does not improve at low altitude; (2) recall is low at every size and lowest for the largest boulders at low altitude, so this is not label ambiguity near the 21 cm threshold; (3) moving the threshold trades misses for false alarms along a poor curve, so thresholding or morphological clean-up cannot fix it; (4) the contact-zone metric is uninformative on this tile (100 of 105 frames at 10-22 m have a hazard within 1 m of the aim point), a limitation of the test terrain. The conclusion is a domain gap: the detector has not learned what real boulders look like. The fix is on the data side (angular synthetic boulders, some real training terrain), then the model.
+Findings: (1) performance does not improve at low altitude; (2) recall is low at every size and lowest for the largest boulders at low altitude, so this is not label ambiguity near the 21 cm threshold; (3) moving the threshold trades misses for false alarms along a poor curve, so thresholding or morphological clean-up cannot fix it; (4) the contact-zone metric is uninformative on this tile (100 of 105 frames at 10-22 m have a hazard within 1 m of the aim point), a limitation of the test terrain. The conclusion is a domain gap: the detector has not learned what real boulders look like. The fix is on the data side (angular synthetic boulders, some real training terrain), then the model; the first test of that is section 3c.
+
+## 3c. Detector v2: angular boulders and real west-half training frames
+
+Changes from v1 (both applied together, so their separate effects are **not** isolated yet): synthetic training terrains use a mix of ellipsoidal and angular boulders, and 1,500 frames of the real tile's **west half** are added to training. Both detectors are scored on frames from the **east half** of the real tile (300 frames, never seen in training; the footprint of every frame lies on one side of the split). Run `unet_v2`, 30 epochs, `scripts/overnight.py`.
+
+| Altitude | Detector | mIoU | Boulder IoU | Hazard pixels called safe | Safe called hazard |
+|---|---|---|---|---|---|
+| 0-10 m (211 frames) | v1 | 0.34 | 0.22 | 35.8% | 19.8% |
+| 0-10 m | **v2** | **0.46** | **0.55** | 28.2% | 21.3% |
+| 10-22 m (89 frames) | v1 | 0.34 | 0.20 | 18.7% | 35.4% |
+| 10-22 m | **v2** | **0.53** | **0.66** | 16.4% | 27.7% |
+
+Boulder recall at 0-10 m by size (v1 -> v2): 0.2-0.5 m 13% -> 57%; 0.5-1 m 17% -> 76%; 1-2 m 11% -> 84%; 2-5 m 3% -> 83%. At 10-22 m the 2-5 m class goes from 10% to 96%. Near the aim point (hazard within 1 m of it, threshold 0.6, 0-10 m): v2 finds 98% of such frames with 0% false alarms; v1 found 93% with 40%.
+
+What did not improve much: the share of hazard pixels called safe (35.8% -> 28.2% at 0-10 m) and safe pixels called hazard (about 21-28%). Hazard pixels include steep slopes, which v2 does not handle much better than v1.
+
+**Caveats.** (1) The east half is held out but is the same site as the west half used in training, so this is easier than a new site and overstates generalization. (2) No ablation yet: the gain cannot be assigned to angular boulders versus real training frames. (3) Closed-loop effect on landings has not been measured yet (the Monte Carlo above used v1).
 
 ## 4. End to end (Monte Carlo)
 

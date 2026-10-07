@@ -37,7 +37,7 @@ It was built as a recreation exercise, so it follows the real mission's method f
 | Camera simulator | Done. Blender frames with pixel-exact hazard labels; 4,500 labelled images generated |
 | Navigation (NFT + Kalman filter) | Done. Centimetre-level in simulation; the filter is overconfident (documented) |
 | Descent controller | Done. Matchpoint-style burn, 10 cm/s ballistic descent, back-away decision at 5 m |
-| Hazard detector (extension) | Trained, but **weak on real terrain** (boulder IoU 0.26). Diagnosed; angular training boulders and real training terrain are coded and next |
+| Hazard detector (extension) | v1 was weak on real terrain (boulder IoU 0.22). **v2** (angular synthetic boulders + real west-half frames) reaches boulder IoU 0.55-0.66 on the held-out east half; flight-level effect not measured yet ([validation](docs/validation.md)) |
 | 1,000-landing Monte Carlo | Running. Provisional (first 69 landings): median delivery error 0.31 m, 94% within 1 m, predicted vs. actual contact 3.2 cm |
 | Replay website | Built; replay data publishes after the Monte Carlo finishes |
 
@@ -45,7 +45,7 @@ The provisional numbers sit in the same range as the published single landing (w
 
 ## Honest limitations
 
-- **The detector does not help yet.** In the provisional Monte Carlo it adds needless back-aways and does not reduce hazard contacts. The aim point is well clear of hazards, so the experiment may also be too easy. Details in [docs/validation.md](docs/validation.md).
+- **The v1 detector did not help in flight.** In the provisional Monte Carlo it adds needless back-aways and does not reduce hazard contacts (v2 has not been flown yet). The aim point is well clear of hazards, so the experiment may also be too easy. Details in [docs/validation.md](docs/validation.md).
 - **Simulated descents start at 45 m, not at the real Checkpoint (125 m).** The 5 cm terrain tile is only 48 m wide. The touchdown decision phase is covered; the upstream dispersions are assumed.
 - **Several parameters are assumptions**, not mission values (sampler-head radius, abort threshold, burn errors). Each is marked in the code and docs, and a sensitivity analysis is provided.
 - **Low-altitude navigation is optimistic**: the simulated camera and the onboard model share a terrain source.
