@@ -50,3 +50,10 @@ No PyTorch wheels exist for Windows ARM64. For local smoke tests there is an emu
 - A fresh runtime: clone the repo, then `sh /content/touch_down/scripts/colab_setup.sh`. Drive must be mounted from a notebook cell (needs the user's consent popup).
 - Persistent state lives on Drive under `MyDrive/touchdown/`: `dataset/`, `runs/<name>/best.pt`, `montecarlo/v1/landing_*.json` (resumable). `/content` is wiped on a disconnect.
 - Long jobs: run from a notebook cell (see Render performance note); the terminal is for short checks (`ls`, `tail`, `pgrep`).
+
+## Kaggle runbook (Colab's free GPU allowance ran out after ~6 h)
+- Account `aryanyaksh` (phone-verified). Private dataset `aryanyaksh/touchdown-detector-v2` holds the v2 checkpoint as `best.pt.part00` + `best.pt.part01` (upload limit was 10 MB per file; the notebook rejoins them with `find ... | sort | xargs cat`, then asserts size 17520863).
+- Notebook `notebook1d8d2e5b39` is `notebooks/05_kaggle.ipynb` imported (File, Import Notebook). Settings: Accelerator **GPU T4 x2** (P100 is too old for Blender 5), Internet on, the dataset attached. 30 GPU h/week.
+- Run unattended with Save Version, "Save & Run All (Commit)". `scripts/kaggle_run.py` stops flights at 8.5 h so the commit finishes and `/kaggle/working` is kept. Stop the interactive draft session (Run menu, Stop session) or it burns quota alongside the commit.
+- Experiment: `--aim-mode random_safe` (random aim point, true clearance >= 0.4 m, 10 m from the tile edge). Pilot (20 landings, seeds 0-19) ran ~100 landings/h. Version 1 flies seeds 0-849; a second session should fly 850-1000. Landings are NOT merged with the 513 old best-aim-point Colab landings (different experiment).
+- Reading output text via browser tools is unreliable (rendered in an iframe); use the Output tab to download `summary.json`/`sensitivity.json`.
