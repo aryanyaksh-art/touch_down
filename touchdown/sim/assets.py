@@ -50,6 +50,23 @@ def best_target(clearance: np.ndarray, res_m: float, margin_m: float = 6.0) -> t
     return np.array([(c + 0.5 - nx / 2) * res_m, (r + 0.5 - ny / 2) * res_m]), float(clearance[r, c])
 
 
+def random_target(clearance: np.ndarray, res_m: float, rng: np.random.Generator, min_clearance_m: float,
+                  margin_m: float) -> tuple[np.ndarray, float]:
+    """Random aim point among cells that are safe on the TRUE map (clearance >= `min_clearance_m`), at least `margin_m`
+    from the tile edge. EXTENSION (not the mission): the real site was chosen for large clearance; this stresses the
+    back-away logic with aim points that have thin margins, where a stale prior map and a detector can matter."""
+    ny, nx = clearance.shape
+    m = int(margin_m / res_m)
+    ok = np.zeros(clearance.shape, bool)
+    ok[m:ny - m, m:nx - m] = clearance[m:ny - m, m:nx - m] >= min_clearance_m
+    rr, cc = np.nonzero(ok)
+    if len(rr) == 0:
+        raise ValueError("no cell satisfies the aim-point clearance and margin")
+    k = int(rng.integers(len(rr)))
+    r, c = rr[k], cc[k]
+    return np.array([(c + 0.5 - nx / 2) * res_m, (r + 0.5 - ny / 2) * res_m]), float(clearance[r, c])
+
+
 def load_assets(dtm_path: str | Path, stale_min_boulder_m: float = 0.8) -> SiteAssets:
     return assets_from_dtm(DTM.load(dtm_path), stale_min_boulder_m)
 

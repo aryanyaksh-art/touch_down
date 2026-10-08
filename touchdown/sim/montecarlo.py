@@ -3,7 +3,7 @@
 Each landing writes OUT/landing_<seed>.json (no images). Re-running skips seeds that already have a file, so a lost
 Colab/Kaggle session costs at most the landing in progress. Seeds are the only source of randomness.
 
-Usage: python -m touchdown.sim.montecarlo --out DIR --seeds 0 100 [--device GPU] [--checkpoint best.pt]
+Usage: python -m touchdown.sim.montecarlo --out DIR --seeds 0 100 [--device GPU] [--checkpoint best.pt] [--aim-mode random_safe]
 """
 import argparse
 import json
@@ -17,7 +17,8 @@ from touchdown.sim.assets import load_assets
 from touchdown.sim.landing import SimConfig, fly
 
 
-def run(out: Path, seeds: range, device: str = "CPU", checkpoint: str | None = None, samples: int = 16) -> None:
+def run(out: Path, seeds: range, device: str = "CPU", checkpoint: str | None = None, samples: int = 16,
+        aim_mode: str = "best") -> None:
     out.mkdir(parents=True, exist_ok=True)
     todo = [s for s in seeds if not (out / f"landing_{s:05d}.json").exists()]
     print(f"{len(todo)} of {len(seeds)} landings to run", flush=True)
@@ -29,7 +30,7 @@ def run(out: Path, seeds: range, device: str = "CPU", checkpoint: str | None = N
     if checkpoint:
         from touchdown.vision.infer import HazardNet
         net = HazardNet(checkpoint)
-    cam, cfg = Camera(640, 480, 44.0), SimConfig()
+    cam, cfg = Camera(640, 480, 44.0), SimConfig(aim_mode=aim_mode)
     with BlenderRenderer(path, samples=samples, device=device) as r:
         for s in todo:
             t0 = time.time()
@@ -50,5 +51,7 @@ if __name__ == "__main__":
     ap.add_argument("--device", default="CPU")
     ap.add_argument("--checkpoint", default=None)
     ap.add_argument("--samples", type=int, default=16)
+    ap.add_argument("--aim-mode", default="best", choices=["best", "random_safe"],
+                    help="best: max-clearance aim point; random_safe: random aim point with thin margins (harder)")
     a = ap.parse_args()
-    run(Path(a.out), range(*a.seeds), a.device, a.checkpoint, a.samples)
+    run(Path(a.out), range(*a.seeds), a.device, a.checkpoint, a.samples, a.aim_mode)

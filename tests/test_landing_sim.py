@@ -40,3 +40,22 @@ def test_closed_loop_flight_end_to_end_without_blender():
     assert res["delivery_error_m"] < 3.0           # generous: the point is the loop closes, not the accuracy
     assert set(res["abort"]) == {"complete_baseline", "stale_baseline"}
     assert res["n_frames"] >= 8
+
+
+def test_random_safe_aim_points_are_safe_but_not_the_best():
+    from touchdown.sim.assets import random_target
+    site = assets_from_dtm(synthetic_site(), margin_m=8.0)
+    pts = [random_target(site.clr_true, 0.1, np.random.default_rng(s), 0.4, 10.0) for s in range(20)]
+    assert all(c >= 0.4 for _, c in pts)
+    assert all(abs(xy[0]) <= 25 - 10 and abs(xy[1]) <= 25 - 10 for xy, _ in pts)
+    assert len({tuple(xy.round(2)) for xy, _ in pts}) > 10
+    assert min(c for _, c in pts) < site.target_clearance_m
+
+
+def test_flight_with_random_safe_aim_records_the_aim_point():
+    site = assets_from_dtm(synthetic_site(), margin_m=8.0)
+    cfg = SimConfig(start_alt_m=30.0, matchpoint_time_s=40.0, aim_mode="random_safe", aim_margin_m=8.0)
+    res = fly(site, FakeRenderer(site.truth), Camera(192, 144, 44.0), cfg, seed=5)
+    assert res["aim_mode"] == "random_safe" and res["target_clearance_m"] >= 0.4
+    assert not np.allclose(res["target"], site.target_xy)
+    assert not res.get("timeout") and res["burn_converged"]

@@ -15,11 +15,14 @@ from touchdown.nav.catalog import make_onboard_model
 from touchdown.nav.ekf import NavEKF
 from touchdown.nav.nft import NFTConfig, nft_update
 from touchdown.render.camera import Camera, look_at
-from touchdown.sim.assets import SiteAssets
+from touchdown.sim.assets import SiteAssets, random_target
 
 
 @dataclass
 class SimConfig:
+    aim_mode: str = "best"                  # "best": max-clearance point (default). "random_safe": EXTENSION, see assets.random_target
+    aim_min_clearance_m: float = 0.40       # ASSUMPTION: random_safe aim points have >= this clearance on the true map
+    aim_margin_m: float = 10.0              # random_safe aim points stay this far from the tile edge (camera footprint)
     start_alt_m: float = 45.0
     matchpoint_time_s: float = 60.0         # burn after NFT has settled; real Matchpoint is at ~54 m (tile-limited here)
     dt_high_s: float = 20.0
@@ -93,7 +96,9 @@ def fly(site: SiteAssets, renderer, cam: Camera, cfg: SimConfig, seed: int, net=
     sun_true = _sun(az, el)
     sun_nav = _rot(rng.standard_normal(3), cfg.sun_nav_err_deg) @ sun_true
     a_bias = rng.normal(0, cfg.unmodelled_accel, 3)
-    tgt = site.target_xy
+    tgt, tgt_clearance = site.target_xy, site.target_clearance_m
+    if cfg.aim_mode == "random_safe":      # drawn only in this mode, so "best" runs reproduce earlier seeds
+        tgt, tgt_clearance = random_target(site.clr_true, res, rng, cfg.aim_min_clearance_m, cfg.aim_margin_m)
 
     # nominal approach: ballistic to the target from a point offset by the start dispersion
     nom0 = np.array([tgt[0] + rng.normal(0, cfg.start_offset_m), tgt[1] + rng.normal(0, cfg.start_offset_m), cfg.start_alt_m])
@@ -105,7 +110,8 @@ def fly(site: SiteAssets, renderer, cam: Camera, cfg: SimConfig, seed: int, net=
 
     live = LiveHazardGrid(site.dtm.z.shape, res) if net is not None else None
     t, matchpoint_done, log = 0.0, False, []
-    result: dict = {"seed": seed, "sun_az": az, "sun_el": el, "target": tgt.tolist()}
+    result: dict = {"seed": seed, "sun_az": az, "sun_el": el, "target": tgt.tolist(),
+                    "target_clearance_m": tgt_clearance, "aim_mode": cfg.aim_mode}
     while True:
         alt_true = x_true[2]
         f = renderer.render(cam, x_true, R, sun_true, want_pos=record)
