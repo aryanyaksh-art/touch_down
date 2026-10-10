@@ -41,11 +41,11 @@ It was built as a recreation exercise, so it follows the real mission's method f
 | 1,000-landing Monte Carlo | **Done** (harder test: random thin-margin aim points, detector v2). Median delivery error 0.39 m, 91.9% within 1 m, predicted vs. actual contact 3.4 cm median (published: 3.5 cm). See [validation](docs/validation.md) |
 | Replay website | Built; replay data publishes after the Monte Carlo finishes |
 
-The provisional numbers sit in the same range as the published single landing (within about 1 m; 3.5 cm predicted vs. actual), but one real landing is not a distribution, so this shows plausibility, not equivalence.
+The final numbers sit in the same range as the published single landing (within about 1 m; 3.5 cm predicted vs. actual), but one real landing is not a distribution, so this shows plausibility, not equivalence.
 
 ## Honest limitations
 
-- **The v1 detector did not help in flight.** In the provisional Monte Carlo it adds needless back-aways and does not reduce hazard contacts (v2 helps only in a harder test, see validation). The aim point is well clear of hazards, so the experiment may also be too easy. Details in [docs/validation.md](docs/validation.md).
+- **The detector trades safety for needless back-aways.** With the easy max-clearance aim point (513 landings, v1) it did nothing useful. In the harder 1,000-landing test (v2) it cuts stale-map hazard contacts from 1.9% to 0.6% but raises needless back-aways from 1.6% to 8.8%, because of its false alarms. Details in [docs/validation.md](docs/validation.md).
 - **Simulated descents start at 45 m, not at the real Checkpoint (125 m).** The 5 cm terrain tile is only 48 m wide. The touchdown decision phase is covered; the upstream dispersions are assumed.
 - **Several parameters are assumptions**, not mission values (sampler-head radius, abort threshold, burn errors). Each is marked in the code and docs, and a sensitivity analysis is provided.
 - **Low-altitude navigation is optimistic**: the simulated camera and the onboard model share a terrain source.
