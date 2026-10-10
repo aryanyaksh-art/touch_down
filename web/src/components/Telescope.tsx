@@ -4,6 +4,9 @@ export const VB_W = 1600
 export const VB_H = 900
 export const EYE = { x: 430, y: 610 }
 export const TUBE_ANGLE = -32 // degrees, tube points up and to the right
+// The bright blue lens in the eyecap. The scroll zoom flies straight into this point and never slides.
+const eyeRad = (TUBE_ANGLE * Math.PI) / 180
+export const FOCUS = { x: EYE.x + 15 * Math.cos(eyeRad), y: EYE.y + 15 * Math.sin(eyeRad) }
 
 const C = {
   tube: '#3a4275',
@@ -63,8 +66,8 @@ export function TelescopeTube() {
       <rect x={1000} y={-47} width={150} height={94} fill={C.dark} />
       <rect x={1000} y={-47} width={150} height={13} fill={C.tube} />
       <rect x={1150} y={-47} width={11} height={94} fill={C.amber} />
-      {/* the eyepiece opening, where the zoom ends up */}
-      <ellipse cx={0} cy={0} rx={5} ry={17} fill={C.ground} />
+      {/* the blue lens, where the zoom ends up */}
+      <circle cx={15} cy={0} r={11} fill="#8da2ff" />
     </g>
   )
 }

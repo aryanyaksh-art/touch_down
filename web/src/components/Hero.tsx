@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { motion, useMotionValue, useMotionValueEvent, useScroll, useSpring, useTransform, type MotionValue } from 'motion/react'
 import Galaxy from './Galaxy'
-import { EYE, TUBE_ANGLE, TelescopeScene, TelescopeTube, VB_H, VB_W } from './Telescope'
+import { SurfaceArt } from './Surface'
+import { EYE, FOCUS, TUBE_ANGLE, TelescopeScene, TelescopeTube, VB_H, VB_W } from './Telescope'
 import type { Star, View } from '../lib/model'
 
 interface Props {
@@ -13,16 +14,22 @@ interface Props {
   count: number
   onOpen: (seed: number, origin: { x: number; y: number }) => void
   hud: ReactNode
+  highlightSeed: number | null
+  highlightPos: { current: { x: number; y: number } | null }
 }
 
 const MAX_ZOOM = 60
-const HOLE_START = 10 // eyepiece hole radius in scene units
+const HOLE_START = 11 // lens hole radius in scene units, matches the blue lens
 const HOLE_END = 34
-// the eyepiece drifts to the middle of the screen as we fly in, so the galaxy ends up centred
-const pan = (v: number) => {
-  const e = v * v * (3 - 2 * v)
-  return { x: EYE.x + (VB_W / 2 - EYE.x) * e, y: EYE.y + (VB_H / 2 - EYE.y) * e }
-}
+
+// Scroll phases, as fractions of the hero's scroll length
+const ZOOM_FROM = 0.02 // telescope zoom runs ZOOM_FROM to ZOOM_TO
+const ZOOM_TO = 0.4
+const READY_FROM = 0.42 // the galaxy can be explored between READY_FROM and READY_TO
+const READY_TO = 0.57
+const DIVE_FROM = 0.58 // then the camera dives into the galaxy core and lands on the asteroid
+const DIVE_TO = 0.94
+const DIVE_ZOOM = 14
 
 function Title({ count }: { count: number }) {
   return (
@@ -50,7 +57,7 @@ function SceneSvg({ tilt }: { tilt: MotionValue<number> }) {
 }
 
 /** Phones and reduced motion: a still picture, then the galaxy below it. No scroll zoom. */
-function SimpleHero({ stars, view, reduce, paused, count, onOpen, hud }: Props) {
+function SimpleHero({ stars, view, reduce, paused, count, onOpen, hud, highlightSeed, highlightPos }: Props) {
   return (
     <>
       <section className="hero-simple">
@@ -65,7 +72,7 @@ function SimpleHero({ stars, view, reduce, paused, count, onOpen, hud }: Props) 
         </div>
       </section>
       <section className="galaxy-block" id="sky">
-        <Galaxy stars={stars} view={view} interactive paused={paused} reduce={reduce} bloom onOpen={onOpen} />
+        <Galaxy stars={stars} view={view} interactive paused={paused} reduce={reduce} bloom highlightSeed={highlightSeed} highlightPos={highlightPos} onOpen={onOpen} />
         <div className="hud-layer on">{hud}</div>
       </section>
     </>
@@ -77,7 +84,7 @@ export default function Hero(props: Props) {
   return <ScrollHero {...props} />
 }
 
-function ScrollHero({ stars, view, reduce, paused, count, onOpen, hud }: Props) {
+function ScrollHero({ stars, view, reduce, paused, count, onOpen, hud, highlightSeed, highlightPos }: Props) {
   const ref = useRef<HTMLElement>(null)
   const { scrollYProgress } = useScroll({ target: ref, offset: ['start start', 'end end'] })
   const [size, setSize] = useState({ w: window.innerWidth, h: window.innerHeight })
@@ -93,35 +100,45 @@ function ScrollHero({ stars, view, reduce, paused, count, onOpen, hud }: Props) 
   }, [])
 
   useMotionValueEvent(scrollYProgress, 'change', (v) => {
-    setBloom(v > 0.34)
-    setReady(v > 0.84)
+    setBloom(v > 0.3)
+    setReady(v > READY_FROM && v < READY_TO)
   })
 
-  // zoom progress 0..1 over the first stretch of the scroll, smoothed so wheel notches glide
-  const raw = useTransform(scrollYProgress, [0.03, 0.8], [0, 1], { clamp: true })
+  // telescope zoom progress 0..1, smoothed so wheel notches glide
+  const raw = useTransform(scrollYProgress, [ZOOM_FROM, ZOOM_TO], [0, 1], { clamp: true })
   const t = useSpring(raw, { stiffness: 140, damping: 32, mass: 0.5 })
+  // dive progress 0..1
+  const diveRaw = useTransform(scrollYProgress, [DIVE_FROM, DIVE_TO], [0, 1], { clamp: true })
+  const u = useSpring(diveRaw, { stiffness: 120, damping: 30, mass: 0.5 })
 
-  const sceneTransform = useTransform(t, (v) => {
-    const p = pan(v)
-    return `translate(${p.x}px, ${p.y}px) scale(${Math.pow(MAX_ZOOM, v)}) translate(${-EYE.x}px, ${-EYE.y}px)`
-  })
+  // pure zoom about the blue lens: the picture never slides, it just pushes in
+  const sceneTransform = useTransform(
+    t,
+    (v) => `translate(${FOCUS.x}px, ${FOCUS.y}px) scale(${Math.pow(MAX_ZOOM, v)}) translate(${-FOCUS.x}px, ${-FOCUS.y}px)`,
+  )
   const sceneOpacity = useTransform(t, [0.96, 0.99], [1, 0])
   const clip = useTransform(t, (v) => {
     const { w, h } = sizeRef.current
     const k = Math.max(w / VB_W, h / VB_H)
-    const p = pan(v)
-    const ex = (w - VB_W * k) / 2 + p.x * k
-    const ey = (h - VB_H * k) / 2 + p.y * k
+    const ex = (w - VB_W * k) / 2 + FOCUS.x * k
+    const ey = (h - VB_H * k) / 2 + FOCUS.y * k
     const r = (HOLE_START + (HOLE_END - HOLE_START) * v) * Math.pow(MAX_ZOOM, v) * k
     return `circle(${r.toFixed(1)}px at ${ex.toFixed(1)}px ${ey.toFixed(1)}px)`
   })
-  // focus pull: the galaxy arrives soft and slightly large, then settles
-  const galaxyBlur = useTransform(t, [0.35, 0.96], [12, 0], { clamp: true })
-  const galaxyFilter = useTransform(galaxyBlur, (b) => `blur(${b.toFixed(1)}px)`)
-  const galaxyTransform = useTransform(t, (v) => `scale(${(1.28 - 0.28 * v).toFixed(4)})`)
-  const titleOpacity = useTransform(scrollYProgress, [0, 0.1], [1, 0])
-  const titleTransform = useTransform(scrollYProgress, [0, 0.1], [0, -36], { clamp: true })
-  const titleMove = useTransform(titleTransform, (y) => `translateY(${y}px)`)
+  // the galaxy arrives soft and slightly large, settles, then we dive into its core
+  const galaxyTransform = useTransform([t, u], ([tv, uv]: number[]) => `scale(${((1.28 - 0.28 * tv) * Math.pow(DIVE_ZOOM, uv)).toFixed(4)})`)
+  const galaxyFilter = useTransform([t, u], ([tv, uv]: number[]) => {
+    const focus = 12 * (1 - Math.min(1, Math.max(0, (tv - 0.35) / 0.61)))
+    return `blur(${(focus + 5 * uv).toFixed(1)}px)`
+  })
+  const galaxyOpacity = useTransform(u, [0.74, 0.96], [1, 0])
+  // the asteroid surface rises as the glow fades
+  const surfaceRise = useTransform(u, [0.5, 1], [22, 0], { clamp: true })
+  const surfaceMove = useTransform(surfaceRise, (y) => `translateY(${y.toFixed(2)}%)`)
+  const surfaceOpacity = useTransform(u, [0.5, 0.9], [0, 1])
+  const titleOpacity = useTransform(scrollYProgress, [0, 0.07], [1, 0])
+  const titleY = useTransform(scrollYProgress, [0, 0.07], [0, -36], { clamp: true })
+  const titleMove = useTransform(titleY, (y) => `translateY(${y}px)`)
 
   // the telescope follows the cursor, a few degrees at most
   const aim = useMotionValue(0)
@@ -135,26 +152,38 @@ function ScrollHero({ stars, view, reduce, paused, count, onOpen, hud }: Props) 
     aim.set(Math.max(-5, Math.min(5, (ang - TUBE_ANGLE) * 0.1)))
   }
 
-  const stage = useMemo(() => ({ height: '100dvh' }), [])
   return (
     <section ref={ref} className="hero-scroll" id="sky" onPointerMove={reduce ? undefined : onPointerMove}>
-      <div className="stage" style={stage}>
-        <motion.svg
-          className="scene"
-          viewBox={`0 0 ${VB_W} ${VB_H}`}
-          preserveAspectRatio="xMidYMid slice"
-          aria-hidden="true"
-          style={{ opacity: sceneOpacity }}
-        >
+      <div className="stage">
+        <motion.svg className="scene" viewBox={`0 0 ${VB_W} ${VB_H}`} preserveAspectRatio="xMidYMid slice" aria-hidden="true" style={{ opacity: sceneOpacity }}>
           <motion.g style={{ transform: sceneTransform }}>
             <SceneSvg tilt={tilt} />
           </motion.g>
         </motion.svg>
-        <motion.div className="galaxy-clip" style={{ clipPath: clip }}>
+        <motion.div className="galaxy-clip" style={{ clipPath: clip, opacity: galaxyOpacity }}>
           <motion.div className="galaxy-zoom" style={{ transform: galaxyTransform, filter: galaxyFilter }}>
-            <Galaxy stars={stars} view={view} interactive={ready} paused={paused} reduce={reduce} bloom={bloom} onOpen={onOpen} />
+            <Galaxy
+              stars={stars}
+              view={view}
+              interactive={ready}
+              paused={paused}
+              reduce={reduce}
+              bloom={bloom}
+              highlightSeed={highlightSeed}
+              highlightPos={highlightPos}
+              onOpen={onOpen}
+            />
           </motion.div>
         </motion.div>
+        <motion.svg
+          className="surface"
+          viewBox={`0 0 ${VB_W} ${VB_H}`}
+          preserveAspectRatio="xMidYMax slice"
+          aria-hidden="true"
+          style={{ opacity: surfaceOpacity, transform: surfaceMove }}
+        >
+          <SurfaceArt />
+        </motion.svg>
         <motion.div className="hero-title" style={{ opacity: titleOpacity, transform: titleMove }}>
           <Title count={count} />
         </motion.div>

@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
 import {
-  ARM_ORDER,
   ARM_TWIST,
   HAZARD_COLOR,
   OUTCOME_LABEL,
@@ -9,7 +8,6 @@ import {
   layoutStars,
   mulberry32,
   viewKey,
-  type Outcome,
   type Star,
   type View,
 } from '../lib/model'
@@ -31,6 +29,9 @@ interface Props {
   paused: boolean
   reduce: boolean
   bloom: boolean
+  /** seed to ring in amber (the slider's pick), and where to report its screen position */
+  highlightSeed?: number | null
+  highlightPos?: { current: { x: number; y: number } | null }
   onOpen: (seed: number, origin: { x: number; y: number }) => void
 }
 
@@ -124,7 +125,7 @@ function drawBackground(L: number, dpr: number): HTMLCanvasElement {
   return c
 }
 
-export default function Galaxy({ stars, view, interactive, paused, reduce, bloom, onOpen }: Props) {
+export default function Galaxy({ stars, view, interactive, paused, reduce, bloom, highlightSeed = null, highlightPos, onOpen }: Props) {
   const wrapRef = useRef<HTMLDivElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const labelRef = useRef<HTMLDivElement>(null)
@@ -135,8 +136,9 @@ export default function Galaxy({ stars, view, interactive, paused, reduce, bloom
     sx: new Float32Array(0),
     sy: new Float32Array(0),
     hover: -1,
+    highlight: -1,
+    highlightPos: highlightPos,
     spin: 0,
-    armAlpha: 0,
     onOpen,
     interactive,
     bloom,
@@ -145,6 +147,8 @@ export default function Galaxy({ stars, view, interactive, paused, reduce, bloom
   eng.current.onOpen = onOpen
   eng.current.interactive = interactive
   eng.current.bloom = bloom
+  eng.current.highlightPos = highlightPos
+  eng.current.highlight = highlightSeed === null ? -1 : stars.findIndex((s) => s.seed === highlightSeed)
 
   // recompute star targets whenever the view or the data changes
   useEffect(() => {
@@ -163,6 +167,11 @@ export default function Galaxy({ stars, view, interactive, paused, reduce, bloom
     }
     e.draw()
   }, [stars, view, reduce])
+
+  // a new slider pick redraws immediately when the loop is not running (reduced motion)
+  useEffect(() => {
+    eng.current.draw()
+  }, [highlightSeed])
 
   useEffect(() => {
     const canvas = canvasRef.current
@@ -250,30 +259,27 @@ export default function Galaxy({ stars, view, interactive, paused, reduce, bloom
         }
       }
       ctx.globalAlpha = 1
-      // arm names with counts
-      e.armAlpha += (1 - e.armAlpha) * (reduce ? 1 : 1 - Math.exp(-dt * 1.2))
-      const counts: Record<Outcome, number> = { clean: 0, backaway: 0, hazard: 0 }
-      for (const s of stars) counts[s.outcome]++
-      ctx.font = '11px "Space Mono", monospace'
-      ctx.textBaseline = 'middle'
-      for (const o of ARM_ORDER) {
-        const th = armPhase(o) + ARM_TWIST * 1.0
-        const p = project(Math.cos(th) * 1.12, Math.sin(th) * 1.12, ca, sa)
-        ctx.globalAlpha = e.armAlpha * 0.9
-        ctx.fillStyle = o === 'hazard' ? HAZARD_COLOR : '#c8cdea'
-        const text = `${OUTCOME_LABEL[o]}  ${counts[o]}`
-        const tw = ctx.measureText(text).width
-        const right = p[0] > W / 2
-        ctx.textAlign = 'left'
-        const x = right ? Math.min(p[0], W - tw - 8) : Math.max(p[0] - tw, 8)
-        const ty = Math.max(14, Math.min(H - 14, p[1]))
-        ctx.lineWidth = 3
-        ctx.strokeStyle = '#0a0d1f'
-        ctx.lineJoin = 'round'
-        ctx.strokeText(text, x, ty)
-        ctx.fillText(text, x, ty)
+      // the picked landing from the slider gets a pulsing amber ring
+      const hi = e.highlight
+      if (hi >= 0) {
+        const x = e.sx[hi]
+        const y = e.sy[hi]
+        const pulse = reduce ? 0 : (Math.sin(t * 4) + 1) / 2
+        ctx.strokeStyle = '#ffc98a'
+        ctx.lineWidth = 2.5
+        ctx.beginPath()
+        ctx.arc(x, y, 14 + pulse * 2, 0, 6.2832)
+        ctx.stroke()
+        ctx.globalAlpha = 0.35 * (1 - pulse)
+        ctx.beginPath()
+        ctx.arc(x, y, 20 + pulse * 10, 0, 6.2832)
+        ctx.stroke()
+        ctx.globalAlpha = 1
+        if (e.highlightPos) {
+          const r = canvas!.getBoundingClientRect()
+          e.highlightPos.current = { x: r.left + x, y: r.top + y }
+        }
       }
-      ctx.globalAlpha = 1
       if (e.hover >= 0) {
         const x = e.sx[e.hover]
         const y = e.sy[e.hover]

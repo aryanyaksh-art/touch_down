@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { AnimatePresence, motion, useReducedMotion, useScroll, useTransform } from 'motion/react'
-import { ArrowLeft, ArrowRight, GithubLogo, Play } from '@phosphor-icons/react'
+import { GithubLogo } from '@phosphor-icons/react'
 import Dashboard from './components/Dashboard'
 import DataCard from './components/DataCard'
 import Hero from './components/Hero'
@@ -8,18 +8,17 @@ import LandingOverlay from './components/LandingOverlay'
 import ReplayViewer from './components/ReplayViewer'
 import SectionDots, { type Section } from './components/SectionDots'
 import Starfield from './components/Starfield'
+import Story from './components/Story'
 import { useStatic } from './data'
-import { EASE_OUT } from './lib/motion'
 import { OUTCOME_LABEL, buildStars, demoLandings, outcomeOf, viewKey, type View } from './lib/model'
-import { buildTour } from './lib/tour'
+import { pickExamples, type Example } from './lib/tour'
 import type { Site } from './types'
 
 const SECTIONS: Section[] = [
   { id: 'sky', label: 'The sky' },
-  { id: 'tour', label: 'Three landings' },
+  { id: 'story', label: 'How a probe sees' },
+  { id: 'scenes', label: 'Three landings' },
   { id: 'results', label: 'Results' },
-  { id: 'faithful', label: 'Faithful and added' },
-  { id: 'how', label: 'How it works' },
 ]
 
 const DEMO_SITE: Site = { extent_m: [48, 48], res_m: 0.05, target: [0, 0], target_clearance_m: 2 }
@@ -49,16 +48,20 @@ export default function App() {
   const points = useMemo(() => (demo ? demoLandings() : data.landings), [demo, data.landings])
   const site = demo ? DEMO_SITE : data.site
   const stars = useMemo(() => buildStars(points, data.index), [points, data.index])
-  const tour = useMemo(() => buildTour(stars), [stars])
+  const examples = useMemo(() => pickExamples(stars), [stars])
+  const sorted = useMemo(() => stars.map((s) => s.seed).sort((a, b) => a - b), [stars])
 
   const [view, setView] = useState<View>({ prior: 'complete', detector: false })
   const [open, setOpen] = useState<{ seed: number; origin: { x: number; y: number } } | null>(() => {
     const s = seedFromHash()
     return s === null ? null : { seed: s, origin: { x: window.innerWidth / 2, y: window.innerHeight / 2 } }
   })
-  const [tourStep, setTourStep] = useState<number | null>(null)
-  const [direction, setDirection] = useState(1)
   const [replayTitle, setReplayTitle] = useState<string | null>(null)
+  // the landing picker: slider and number box share one pick, which rings a star in the galaxy
+  const [pickIdx, setPickIdx] = useState<number | null>(null)
+  const [pickText, setPickText] = useState('')
+  const highlightPos = useRef<{ x: number; y: number } | null>(null)
+  const pickSeed = pickIdx === null ? null : sorted[pickIdx]
 
   const centre = () => ({ x: window.innerWidth / 2, y: window.innerHeight / 2 })
 
@@ -70,41 +73,22 @@ export default function App() {
 
   const close = useCallback(() => {
     setOpen(null)
-    setTourStep(null)
     if (HASH.test(location.hash)) history.replaceState(null, '', location.pathname + location.search)
   }, [])
 
   useEffect(() => {
     const on = () => {
       const s = seedFromHash()
-      if (s === null) {
-        setOpen(null)
-        setTourStep(null)
-      } else setOpen({ seed: s, origin: { x: window.innerWidth / 2, y: window.innerHeight / 2 } })
+      if (s === null) setOpen(null)
+      else setOpen({ seed: s, origin: { x: window.innerWidth / 2, y: window.innerHeight / 2 } })
     }
     window.addEventListener('hashchange', on)
     return () => window.removeEventListener('hashchange', on)
   }, [])
 
-  const goTourStep = (i: number, dir = 1) => {
-    const step = tour[i]
-    if (!step) return
-    setDirection(dir)
-    setTourStep(i)
-    setView(step.view)
-    setReplayTitle(null)
-    setOpen((cur) => ({ seed: step.seed, origin: cur?.origin ?? centre() }))
-    history.replaceState(null, '', `#/landing/${step.seed}`)
-  }
-  const startTour = (i = 0) => {
-    const step = tour[i]
-    if (!step) return
-    setDirection(1)
-    setTourStep(i)
-    setView(step.view)
-    setReplayTitle(null)
-    setOpen({ seed: step.seed, origin: centre() })
-    history.pushState(null, '', `#/landing/${step.seed}`)
+  const openExample = (ex: Example) => {
+    setView(ex.view)
+    openSeed(ex.seed, centre())
   }
 
   const goto = useCallback(
@@ -115,25 +99,31 @@ export default function App() {
       if (id === 'sky' && !narrow) {
         // land where the galaxy is fully revealed, not at the telescope
         const top = el.getBoundingClientRect().top + window.scrollY
-        window.scrollTo({ top: top + (el.offsetHeight - window.innerHeight) * 0.9, behavior })
+        window.scrollTo({ top: top + (el.offsetHeight - window.innerHeight) * 0.5, behavior })
       } else el.scrollIntoView({ behavior, block: 'start' })
     },
     [reduce, narrow],
   )
 
+  const pickNearest = (n: number) => {
+    let lo = 0
+    let hi = sorted.length - 1
+    while (lo < hi) {
+      const mid = (lo + hi) >> 1
+      if (sorted[mid] < n) lo = mid + 1
+      else hi = mid
+    }
+    if (lo > 0 && n - sorted[lo - 1] < sorted[lo] - n) lo -= 1
+    return lo
+  }
+
   const openStar = open ? stars.find((s) => s.seed === open.seed) : undefined
   const { scrollY } = useScroll()
   const barOpacity = useTransform(scrollY, [160, 360], [0, 1])
+  const max = sorted.length ? sorted[sorted.length - 1] : 0
 
   const hud = (
     <div className="hud">
-      <div className="hud-legend">
-        <p>
-          Each bright star is one simulated landing. Closer to the core means it ended nearer its aim point. A ring means a full
-          camera replay. The faint haze behind is decoration.
-        </p>
-        {demo && <p className="hot">Sample data, shown until the real landings are published.</p>}
-      </div>
       <div className="hud-controls">
         <span className="seg" role="group" aria-label="Ground hazard map">
           <button type="button" className={view.prior === 'complete' ? 'on' : ''} onClick={() => setView({ ...view, prior: 'complete' })}>complete map</button>
@@ -143,28 +133,59 @@ export default function App() {
           <button type="button" className={!view.detector ? 'on' : ''} onClick={() => setView({ ...view, detector: false })}>baseline</button>
           <button type="button" className={view.detector ? 'on' : ''} onClick={() => setView({ ...view, detector: true })}>+ detector</button>
         </span>
-        <form
-          className="goto"
-          onSubmit={(e) => {
-            e.preventDefault()
-            const v = Number(new FormData(e.currentTarget).get('seed'))
-            if (stars.some((s) => s.seed === v)) openSeed(v, centre())
+        {demo && <span className="sample hot">sample data</span>}
+      </div>
+      <div className="picker">
+        <label htmlFor="landing-slider">Landing</label>
+        <input
+          id="landing-slider"
+          className="slider"
+          type="range"
+          min={0}
+          max={Math.max(0, sorted.length - 1)}
+          step={1}
+          value={pickIdx ?? 0}
+          onChange={(e) => {
+            const i = Number(e.target.value)
+            setPickIdx(i)
+            setPickText(String(sorted[i]))
           }}
-        >
-          <label htmlFor="seed">Landing</label>
-          <input id="seed" name="seed" type="number" min={0} inputMode="numeric" placeholder="0" />
-          <button type="submit">Open</button>
-        </form>
-        {tour.length > 0 && (
-          <button type="button" className="primary" onClick={() => startTour()}>
-            <Play size={14} weight="fill" /> Take the tour
+          aria-valuetext={pickSeed === null ? 'none chosen' : `landing ${pickSeed}`}
+        />
+        <input
+          className="seed-box"
+          type="number"
+          inputMode="numeric"
+          min={0}
+          max={max}
+          placeholder={`0 to ${max}`}
+          value={pickText}
+          aria-label={`Landing number, 0 to ${max}`}
+          onChange={(e) => {
+            const raw = e.target.value
+            if (raw === '') {
+              setPickText('')
+              setPickIdx(null)
+              return
+            }
+            const n = Math.floor(Number(raw))
+            if (Number.isNaN(n) || !sorted.length) return
+            const capped = Math.max(sorted[0], Math.min(max, n))
+            const i = pickNearest(capped)
+            setPickIdx(i)
+            setPickText(String(capped === n ? raw : capped))
+          }}
+          onBlur={() => pickSeed !== null && setPickText(String(pickSeed))}
+        />
+        {pickSeed !== null && (
+          <button type="button" className="primary open-btn" onClick={() => openSeed(pickSeed, highlightPos.current ?? centre())}>
+            Open
           </button>
         )}
       </div>
     </div>
   )
 
-  const step = tourStep !== null ? tour[tourStep] : null
   const outcome = openStar ? outcomeOf(openStar.point, viewKey(view)) : null
 
   return (
@@ -181,75 +202,29 @@ export default function App() {
       <SectionDots sections={SECTIONS} onGo={goto} />
 
       <main>
-        <div>
-          <Hero
-            stars={stars}
-            view={view}
-            reduce={reduce}
-            paused={!!open}
-            simple={narrow || reduce}
-            count={stars.length || 1000}
-            onOpen={openSeed}
-            hud={hud}
-          />
-        </div>
+        <Hero
+          stars={stars}
+          view={view}
+          reduce={reduce}
+          paused={!!open}
+          simple={narrow || reduce}
+          count={stars.length || 1000}
+          onOpen={openSeed}
+          hud={hud}
+          highlightSeed={pickSeed}
+          highlightPos={highlightPos}
+        />
+
+        <Story
+          examples={{ clean: examples.clean?.seed ?? null, back: examples.back?.seed ?? null, old: examples.old?.seed ?? null }}
+          onOpen={(seed) => {
+            const ex = [examples.clean, examples.back, examples.old].find((e) => e?.seed === seed)
+            if (ex) openExample(ex)
+          }}
+        />
 
         <div className="content">
-          <section id="tour" className="block">
-            <h2>Follow three landings</h2>
-            <p className="lede">Each one is picked from the landing data rather than written by hand, then replayed from the first camera frame to the decision at 5 m.</p>
-            {tour.length === 0 && <p className="dim">The landing data is still loading.</p>}
-            <ol className="tour-list">
-              {tour.map((s, i) => (
-                <motion.li
-                  key={s.seed}
-                  initial={reduce ? false : { opacity: 0, transform: 'translateY(14px)' }}
-                  whileInView={{ opacity: 1, transform: 'translateY(0px)' }}
-                  viewport={{ once: true, margin: '0px 0px -12% 0px' }}
-                  transition={{ duration: 0.5, delay: i * 0.07, ease: EASE_OUT }}
-                >
-                  <div>
-                    <h3>{s.title}</h3>
-                    <p>{s.text}</p>
-                  </div>
-                  <button type="button" onClick={() => startTour(i)}>
-                    Watch landing {s.seed}
-                  </button>
-                </motion.li>
-              ))}
-            </ol>
-          </section>
-
           <Dashboard site={site} summary={demo ? null : data.summary} landings={points} />
-
-          <section className="block" id="faithful">
-            <h2>What is faithful, and what is added</h2>
-            <div className="table-wrap">
-              <table>
-                <thead>
-                  <tr><th>Part</th><th>Real OSIRIS-REx</th><th>This project</th></tr>
-                </thead>
-                <tbody>
-                  <tr><td>Navigation</td><td>Natural Feature Tracking from camera images</td><td>Same method, rebuilt here</td></tr>
-                  <tr><td>Hazard check</td><td>Ground-built hazard map; wave-off at 5 m if contact is unsafe</td><td>Same (the baseline)</td></tr>
-                  <tr><td>Hazard detection</td><td>None onboard</td><td><b>Added:</b> a neural network reads the live images</td></tr>
-                  <tr><td>Aim point</td><td>One site chosen for large clearance</td><td><b>Added:</b> random safe points, to stress the decision</td></tr>
-                  <tr><td>Descent start</td><td>Checkpoint at about 125 m</td><td>45 m (the real terrain tile is only 48 m wide)</td></tr>
-                </tbody>
-              </table>
-            </div>
-          </section>
-
-          <section className="block" id="how">
-            <h2>How it works</h2>
-            <ol className="how">
-              <li><b>Camera frames</b> are rendered from NASA’s public 5 cm model of Nightingale, OSIRIS-REx’s sample site.</li>
-              <li><b>Natural Feature Tracking</b> predicts how known landmarks should look from the estimated position, matches them to the image, and a Kalman filter turns the offsets into a position fix.</li>
-              <li><b>A Matchpoint-style burn</b> puts the spacecraft on a ballistic arc to the aim point at 10 cm/s.</li>
-              <li><b>At about 5 m</b> it predicts where it will touch, checks that against the hazard map, and either lands or backs away.</li>
-              <li><b>The extension:</b> a neural network also looks for boulders in the live images, something the real spacecraft did not do.</li>
-            </ol>
-          </section>
         </div>
       </main>
 
@@ -263,41 +238,21 @@ export default function App() {
             reduce={reduce}
             onClose={close}
             contentKey={open.seed}
-            direction={direction}
+            direction={1}
             header={
               <div className="overlay-head">
-                <h2>{step ? step.title : replayTitle ?? `Landing ${openStar.seed}`}</h2>
+                <h2>{replayTitle ?? `Landing ${openStar.seed}`}</h2>
                 <p className="dim">
-                  {step || replayTitle ? `Landing ${openStar.seed}. ` : ''}
+                  {replayTitle ? `Landing ${openStar.seed}. ` : ''}
                   {outcome ? OUTCOME_LABEL[outcome] : ''}.
                 </p>
               </div>
-            }
-            footer={
-              step && tourStep !== null ? (
-                <div className="tour-bar">
-                  <p>{step.text}</p>
-                  <div className="tour-nav">
-                    <button type="button" onClick={() => goTourStep(tourStep - 1, -1)} disabled={tourStep === 0} aria-label="Previous landing">
-                      <ArrowLeft size={16} />
-                    </button>
-                    <span className="dim">{tourStep + 1} of {tour.length}</span>
-                    {tourStep < tour.length - 1 ? (
-                      <button type="button" onClick={() => goTourStep(tourStep + 1, 1)} aria-label="Next landing">
-                        <ArrowRight size={16} />
-                      </button>
-                    ) : (
-                      <button type="button" className="primary" onClick={close}>Back to the sky</button>
-                    )}
-                  </div>
-                </div>
-              ) : undefined
             }
           >
             {openStar.replayId && site && data.site ? (
               <ReplayViewer id={openStar.replayId} site={data.site} onLoaded={(r) => setReplayTitle(r.title)} />
             ) : (
-              <DataCard star={openStar} />
+              <DataCard star={openStar} picture={data.pictures.has(openStar.seed)} detector={data.pictureDetector} />
             )}
           </LandingOverlay>
         )}

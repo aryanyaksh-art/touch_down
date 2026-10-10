@@ -1,5 +1,6 @@
 import type { Star } from '../lib/model'
 import CountText from './CountText'
+import PictureView from './PictureView'
 
 const KEYS: { key: string; label: string }[] = [
   { key: 'complete_baseline', label: 'Complete map, baseline' },
@@ -37,10 +38,11 @@ function Ruler({ err }: { err: number }) {
   )
 }
 
-export default function DataCard({ star }: { star: Star }) {
+export default function DataCard({ star, picture, detector }: { star: Star; picture: boolean; detector: boolean }) {
   const abortBase = star.point.abort['complete_baseline']
   return (
     <div className="datacard">
+      {picture && <PictureView seed={star.seed} detector={detector} />}
       <div className="datacard-nums">
         <div>
           <div className="big"><CountText value={`${star.err.toFixed(2)} m`} duration={0.9} /></div>
@@ -78,9 +80,7 @@ export default function DataCard({ star }: { star: Star }) {
           </tbody>
         </table>
       </div>
-      <p className="note">
-        This landing has no stored camera replay. Stars with a ring around them do: only a hand-picked set are exported, to keep the site small.
-      </p>
+      {!picture && <p className="note">No picture has been rendered for this landing yet.</p>}
     </div>
   )
 }

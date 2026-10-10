@@ -1,0 +1,91 @@
+/* Story layout and animations. Flat shapes only. Motion: transform, opacity, stroke, fill. */
+.story { position: relative; z-index: 1; }
+.beat { min-height: 100dvh; display: grid; align-content: center; gap: 28px 56px; padding: 12vh max(20px, 6vw); max-width: 1360px; margin: 0 auto; scroll-margin-top: 0; }
+.chapter { grid-template-columns: minmax(0, 0.75fr) minmax(0, 1.25fr); align-items: center; }
+.chapter h2 { font-size: clamp(26px, 3.5vw, 50px); max-width: 15ch; }
+.beat-scene { grid-template-columns: minmax(0, 1fr); justify-items: start; }
+.beat-scene h2 { font-size: clamp(26px, 3.5vw, 48px); }
+.scene-head { display: grid; gap: 10px; max-width: 60ch; justify-items: start; }
+.anim { position: relative; width: 100%; max-width: 900px; }
+.anim svg { width: 100%; height: auto; display: block; background: rgba(10, 13, 31, 0.6); border: 1px solid var(--line); border-radius: var(--radius); }
+.anim-replay { position: absolute; right: 8px; bottom: 8px; width: 34px; height: 34px; padding: 0; background: var(--veil); border: 1px solid var(--line); border-radius: var(--radius); display: inline-flex; align-items: center; justify-content: center;
+  transition: transform 160ms var(--ease-out), border-color 160ms var(--ease-out); }
+.anim-replay:active { transform: scale(0.95); }
+.ghost { background: transparent; border: 1px solid var(--line); color: var(--ink); border-radius: var(--radius); height: 34px; padding: 0 12px; display: inline-flex; align-items: center; gap: 8px; font-size: 13px;
+  transition: transform 160ms var(--ease-out), border-color 160ms var(--ease-out); }
+.ghost:active { transform: scale(0.97); }
+@media (hover: hover) and (pointer: fine) {
+  .ghost:hover, .anim-replay:hover { border-color: var(--ink); }
+}
+
+/* every animated shape starts paused and runs when the scene arrives */
+.beat-svg .a { animation-duration: 0.8s; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); animation-fill-mode: both; animation-play-state: paused; transform-box: fill-box; transform-origin: center; }
+.beat-svg.go .a { animation-play-state: running; }
+
+.fade { animation-name: fade; }
+.pop { animation-name: pop; }
+.slide-in { animation-name: slide-in; }
+.glide-in { animation-name: glide-in; }
+.grow-x { animation-name: grow-x; transform-origin: 0% 50%; }
+.draw { animation-name: draw; stroke-dasharray: 1; }
+.drop { animation-name: drop; }
+.cell-in { animation-name: cell-in; animation-duration: 0.5s; animation-delay: var(--in-delay, 0s); }
+.cell-hot { animation-name: cell-hot; animation-duration: 0.5s; animation-timing-function: ease; }
+.cell-in.cell-hot { animation-name: cell-in, cell-hot; animation-duration: 0.5s, 0.5s; animation-delay: var(--in-delay, 0s), var(--hot-delay, 1.6s); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1), ease; }
+.hop { animation-name: hop; animation-duration: 3.2s; animation-delay: 0.6s; }
+.ring-hot { animation-name: ring-hot; }
+.flame-on { animation-name: flame-on; animation-duration: 0.25s; animation-delay: var(--flame, 0s); }
+.flicker { animation-name: flicker; animation-duration: 0.14s; animation-iteration-count: infinite; animation-direction: alternate; transform-origin: 50% 0%; animation-timing-function: ease-in-out; }
+.back-away { animation-name: back-away; animation-duration: 7s; }
+.old-map { animation-name: old-map; animation-duration: 9.6s; }
+.puff, .burst, .flash, .rock-flash { animation-fill-mode: forwards; }
+.puff { animation-name: puff; }
+.burst { animation-name: burst; }
+.flash { animation-name: flash; animation-duration: 0.6s; }
+.rock-flash { animation-name: rock-flash; }
+
+@keyframes fade { from { opacity: 0; } }
+@keyframes pop { from { opacity: 0; transform: scale(0.7); } }
+@keyframes slide-in { from { opacity: 0; transform: translateX(48px); } }
+@keyframes glide-in { from { opacity: 0; transform: translateX(-140px); } }
+@keyframes grow-x { from { transform: scaleX(0); } }
+@keyframes draw { from { stroke-dashoffset: 1; } }
+@keyframes drop { from { transform: translateY(-330px); } }
+@keyframes cell-in { from { opacity: 0; transform: scale(0.7); } }
+@keyframes cell-hot { from { fill: #262c55; } }
+@keyframes ring-hot { from { stroke: #9db4ff; } }
+@keyframes flame-on { from { opacity: 0; } to { opacity: 1; } }
+@keyframes flicker { from { transform: scaleY(0.7); } to { transform: scaleY(1.15); } }
+@keyframes flash { 0% { opacity: 0.85; } 100% { opacity: 0; } }
+@keyframes puff { 0% { opacity: 0.7; transform: translate(0, 0) scale(0.4); } 100% { opacity: 0; transform: translate(var(--dx, 0px), -30px) scale(1.5); } }
+@keyframes burst { 0% { opacity: 0.9; transform: scale(0.6); } 100% { opacity: 0; transform: scale(2.4); } }
+@keyframes rock-flash { 0% { fill: #3a4275; } 12% { fill: #ff5a36; } 100% { fill: #3a4275; } }
+@keyframes hop {
+  0%, 25% { transform: translate(var(--ax), var(--ay)); animation-timing-function: cubic-bezier(0.77, 0, 0.175, 1); }
+  40%, 62% { transform: translate(var(--bx), var(--by)); animation-timing-function: cubic-bezier(0.77, 0, 0.175, 1); }
+  85%, 100% { transform: translate(0, 0); }
+}
+@keyframes back-away {
+  0% { transform: translateY(-300px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  45%, 56% { transform: translateY(0); animation-timing-function: cubic-bezier(0.77, 0, 0.175, 1); }
+  100% { transform: translateY(-270px); }
+}
+@keyframes old-map {
+  0% { transform: translateY(-360px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  30% { transform: translateY(0) rotate(0deg); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  33% { transform: translateY(0) rotate(-9deg); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  37%, 41% { transform: translateY(0) rotate(0deg); animation-timing-function: cubic-bezier(0.77, 0, 0.175, 1); }
+  46%, 50% { transform: translateY(-360px); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  76%, 80% { transform: translateY(-60px); animation-timing-function: cubic-bezier(0.77, 0, 0.175, 1); }
+  100% { transform: translateY(-300px); }
+}
+
+@media (max-width: 899px) {
+  .chapter { grid-template-columns: minmax(0, 1fr); }
+  .chapter h2 { max-width: 20ch; }
+  .beat { min-height: auto; padding: 9vh 20px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .beat-svg .a { animation: none !important; }
+  .anim-replay { display: none; }
+}

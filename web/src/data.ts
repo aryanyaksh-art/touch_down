@@ -22,6 +22,8 @@ export function useStatic() {
   const [index, setIndex] = useState<IndexEntry[]>([])
   const [summary, setSummary] = useState<Summary | null>(null)
   const [landings, setLandings] = useState<LandingPoint[]>([])
+  const [pictures, setPictures] = useState<Set<number>>(new Set())
+  const [pictureDetector, setPictureDetector] = useState(false)
   const [loaded, setLoaded] = useState(false)
   useEffect(() => {
     Promise.all([
@@ -29,7 +31,10 @@ export function useStatic() {
       getJson<IndexEntry[]>('index.json'),
       getJson<Summary>('summary.json'),
       getJson<LandingPoint[]>('landings.json'),
-    ]).then(([s, i, su, l]) => {
+      getJson<{ seeds: number[]; detector: boolean }>('pictures.json'),
+    ]).then(([s, i, su, l, pic]) => {
+      setPictures(new Set(pic?.seeds ?? []))
+      setPictureDetector(!!pic?.detector)
       setSite(s)
       setIndex(i ?? [])
       setSummary(su)
@@ -37,7 +42,7 @@ export function useStatic() {
       setLoaded(true)
     })
   }, [])
-  return { site, index, summary, landings, loaded }
+  return { site, index, summary, landings, pictures, pictureDetector, loaded }
 }
 
 export function useReplay(id: string | null) {
