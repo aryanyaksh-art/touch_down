@@ -18,7 +18,8 @@ from touchdown.sim.landing import SimConfig, fly
 
 
 def run(out: Path, seeds: range, device: str = "CPU", checkpoint: str | None = None, samples: int = 16,
-        aim_mode: str = "best", head_radius_m: float | None = None, p_abort: float | None = None) -> None:
+        aim_mode: str = "best", head_radius_m: float | None = None, p_abort: float | None = None,
+        corr_factor: float | None = None, sigma_a: float | None = None) -> None:
     out.mkdir(parents=True, exist_ok=True)
     todo = [s for s in seeds if not (out / f"landing_{s:05d}.json").exists()]
     print(f"{len(todo)} of {len(seeds)} landings to run", flush=True)
@@ -35,6 +36,10 @@ def run(out: Path, seeds: range, device: str = "CPU", checkpoint: str | None = N
         cfg.head_radius_m = head_radius_m
     if p_abort is not None:
         cfg.p_abort = p_abort
+    if corr_factor is not None:          # filter calibration sweeps (notebooks/09_kaggle_filter_sweep.ipynb)
+        cfg.nft.corr_factor = corr_factor
+    if sigma_a is not None:
+        cfg.sigma_a_filter = sigma_a
     cam = Camera(640, 480, 44.0)
     with BlenderRenderer(path, samples=samples, device=device) as r:
         for s in todo:
@@ -60,5 +65,8 @@ if __name__ == "__main__":
                     help="best: max-clearance aim point; random_safe: random aim point with thin margins (harder)")
     ap.add_argument("--head-radius", type=float, default=None, help="metres; default is the SimConfig value (0.16, TAGSAM outer radius)")
     ap.add_argument("--p-abort", type=float, default=None, help="hazard-probability threshold; default is the SimConfig value (0.01)")
+    ap.add_argument("--corr-factor", type=float, default=None, help="NFT measurement-noise inflation for correlated errors (default 1.5)")
+    ap.add_argument("--sigma-a", type=float, default=None, help="filter process noise, unmodelled acceleration [m/s^2] (default 2e-6)")
     a = ap.parse_args()
-    run(Path(a.out), range(*a.seeds), a.device, a.checkpoint, a.samples, a.aim_mode, a.head_radius, a.p_abort)
+    run(Path(a.out), range(*a.seeds), a.device, a.checkpoint, a.samples, a.aim_mode, a.head_radius, a.p_abort,
+        a.corr_factor, a.sigma_a)
