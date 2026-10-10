@@ -74,6 +74,17 @@ def export_replay(res: dict, out: Path, name: str, title: str, blurb: str) -> di
             "unsafe_contact": res["unsafe_contact"], "delivery_error_m": res["delivery_error_m"]}
 
 
+BLURBS = {
+    "Clean touchdown": "Navigation settles, the burn lands near the target, and the contact point is clear of hazards.",
+    "Justified back-away": "The predicted contact point is too close to a mapped hazard at 5 m, so the spacecraft waves off, and contact really would have hit a hazard.",
+    "Back-away": "The predicted contact point is too close to a mapped hazard at 5 m, so the spacecraft waves off.",
+    "Detector catches a missed boulder": "The ground map missed a small boulder. The neural detector sees it in the descent images and forces a back-away.",
+    "Missed hazard": "The stale ground map misses a boulder at the contact point and nothing else warns the spacecraft.",
+    "Needless back-away by the detector": "The detector flags a hazard that is not really there, so the spacecraft waves off a safe touchdown. This is the cost of its false alarms.",
+    "Typical descent": "A randomly chosen landing from the Monte Carlo set.",
+}
+
+
 def pick_illustrative(R: list[dict]) -> list[tuple[int, str, str]]:
     """(seed, title, blurb) for a handful of instructive outcomes from a Monte Carlo set."""
     picks: list[tuple[int, str, str]] = []
@@ -104,6 +115,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--out", required=True)
     ap.add_argument("--seeds", nargs="*", type=int, default=[])
+    ap.add_argument("--titles", nargs="*", default=[], help="optional titles, one per --seeds entry (known titles get an explanation)")
     ap.add_argument("--mc", default=None)
     ap.add_argument("--checkpoint", default=None)
     ap.add_argument("--device", default="CPU")
@@ -113,7 +125,10 @@ def main():
     path = data_dir() / "nightingale_dtm_5cm.npz"
     site = load_assets(path)
     export_site(site, out)
-    picks = [(s, f"Landing {s}", "") for s in a.seeds]
+    picks = []
+    for i, sd in enumerate(a.seeds):
+        title = a.titles[i] if i < len(a.titles) else f"Landing {sd}"
+        picks.append((sd, title, BLURBS.get(title, "")))
     summary = None
     if a.mc:
         R = load_results(a.mc)
