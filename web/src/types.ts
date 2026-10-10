@@ -61,6 +61,19 @@ export interface Rate {
   ci95: [number, number]
 }
 
+export interface DetectorEffect {
+  n: number
+  hazard_contacts_baseline: number
+  hazard_contacts_with_detector: number
+  avoided: number
+  introduced: number
+  mcnemar_p: number
+  needless_baseline: number
+  needless_with_detector: number
+  extra_needless_per_hazard_avoided: number | null
+  extra_needless_per_hazard_avoided_ci95: [number, number] | null
+}
+
 export interface Summary {
   n_landings: number
   delivery_error_m: {
@@ -69,15 +82,18 @@ export interface Summary {
     p90: number
     p95: number
     max: number
+    median_ci95?: [number, number]
+    p95_ci95?: [number, number]
     within_1m: Rate
     published_within_m: number
   }
-  pred_vs_actual_cm: { median: number; p95: number; published_cm: number }
+  pred_vs_actual_cm: { median: number; p95: number; median_ci95?: [number, number]; published_cm: number }
   nav_err_at_matchpoint_m_median: number
   nav_err_at_decision_m_median: number
   nees_at_decision_mean: number
   unsafe_if_never_abort: Rate
   published_abort_probability_pre_tag: number
+  detector_effect?: Record<string, DetectorEffect>
   scenarios: Record<
     string,
     {

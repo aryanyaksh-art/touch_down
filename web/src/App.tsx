@@ -111,6 +111,24 @@ export default function App() {
 
         <Dashboard site={site} summary={summary} landings={landings} />
 
+        <section className="about" id="faithful">
+          <h2>What is faithful, and what is added</h2>
+          <div className="table-wrap">
+            <table>
+              <thead>
+                <tr><th>Part</th><th>Real OSIRIS-REx</th><th>This project</th></tr>
+              </thead>
+              <tbody>
+                <tr><td>Navigation</td><td>Natural Feature Tracking from camera images</td><td>Same method, rebuilt here</td></tr>
+                <tr><td>Hazard check</td><td>Ground-built hazard map; wave-off at 5 m if contact is unsafe</td><td>Same (the baseline)</td></tr>
+                <tr><td>Hazard detection</td><td>None onboard</td><td><b>Added:</b> a neural network reads the live images</td></tr>
+                <tr><td>Aim point</td><td>One site chosen for large clearance</td><td><b>Added:</b> random safe points, to stress the decision</td></tr>
+                <tr><td>Descent start</td><td>Checkpoint at ~125 m</td><td>45 m (the real terrain tile is only 48 m wide)</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
         <section className="about">
           <h2>How it works</h2>
           <ol>

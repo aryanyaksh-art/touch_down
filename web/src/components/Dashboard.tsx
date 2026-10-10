@@ -80,8 +80,16 @@ export default function Dashboard({ site, summary, landings }: { site: Site | nu
         execution error, unmodelled forces, sun direction, and onboard terrain-model error.
       </p>
       <div className="stats">
-        <Stat label="Delivery error, median" value={`${d.median.toFixed(2)} m`} sub={`95th percentile ${d.p95.toFixed(2)} m`} />
-        <Stat label="Within 1 m of target" value={pct(d.within_1m.rate)} sub="OSIRIS-REx: within ~1 m (one landing)" />
+        <Stat
+          label="Delivery error, median"
+          value={`${d.median.toFixed(2)} m`}
+          sub={`95th percentile ${d.p95.toFixed(2)} m${d.median_ci95 ? ` · median 95% CI ${d.median_ci95[0].toFixed(2)}–${d.median_ci95[1].toFixed(2)}` : ''}`}
+        />
+        <Stat
+          label="Within 1 m of target"
+          value={pct(d.within_1m.rate)}
+          sub={`95% CI ${pct(d.within_1m.ci95[0])}–${pct(d.within_1m.ci95[1])} · OSIRIS-REx: within 1 m (one landing)`}
+        />
         <Stat
           label="Predicted vs. actual contact"
           value={`${summary.pred_vs_actual_cm.median.toFixed(1)} cm`}
@@ -128,11 +136,50 @@ export default function Dashboard({ site, summary, landings }: { site: Site | nu
           </tbody>
         </table>
       </div>
+      {summary.detector_effect && Object.keys(summary.detector_effect).length > 0 && (
+        <>
+          <h3>What the neural detector changes</h3>
+          <p className="lede">
+            The same flights are judged with and without the detector, so the comparison is paired. It prevents hazard contacts
+            but also raises false alarms (needless back-aways).
+          </p>
+          <div className="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Ground map</th>
+                  <th>Hazard contacts</th>
+                  <th>Needless back-aways</th>
+                  <th>Extra needless per hazard avoided</th>
+                  <th>Paired test (McNemar p)</th>
+                </tr>
+              </thead>
+              <tbody>
+                {Object.entries(summary.detector_effect).map(([k, e]) => (
+                  <tr key={k}>
+                    <td>{k === 'stale' ? 'Stale (missing small boulders)' : 'Complete'}</td>
+                    <td>{e.hazard_contacts_baseline} → {e.hazard_contacts_with_detector} of {e.n}</td>
+                    <td>{e.needless_baseline} → {e.needless_with_detector}</td>
+                    <td>
+                      {e.extra_needless_per_hazard_avoided == null
+                        ? '–'
+                        : `${e.extra_needless_per_hazard_avoided.toFixed(1)}${e.extra_needless_per_hazard_avoided_ci95 ? ` (${e.extra_needless_per_hazard_avoided_ci95[0].toFixed(1)}–${e.extra_needless_per_hazard_avoided_ci95[1].toFixed(1)})` : ''}`}
+                    </td>
+                    <td>{e.mcnemar_p < 0.001 ? '<0.001' : e.mcnemar_p.toFixed(3)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
+      )}
       <p className="note">
         <b>Read with care.</b> The real mission is one landing; these are simulated, so matching its numbers shows the method is
         plausible, not that it would fly. Terrain is the real Nightingale model rendered by a Lambertian model, so very low
-        altitude navigation is optimistic. The “stale map” scenario removes boulders under 0.8 m from the ground-built hazard
-        map, an assumption standing in for unmapped small rocks.
+        altitude navigation is optimistic. Aim points are random but safe on the true map (an extension: the real site was chosen
+        for large clearance), and the decision uses the published TAGSAM head radius (16 cm) and a threshold for over 99% safety.
+        The “stale map” scenario removes boulders under 0.8 m from the ground-built hazard map, an assumption standing in for
+        unmapped small rocks.
       </p>
     </section>
   )
