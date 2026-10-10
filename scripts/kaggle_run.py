@@ -23,13 +23,17 @@ ap.add_argument("--seeds", nargs=2, type=int, required=True)
 ap.add_argument("--out", required=True)
 ap.add_argument("--max-hours", type=float, default=8.5)
 ap.add_argument("--aim-mode", default="random_safe", choices=["best", "random_safe"])
+ap.add_argument("--head-radius", type=float, default=None)
+ap.add_argument("--p-abort", type=float, default=None)
 a = ap.parse_args()
 
 os.chdir(ROOT)
 env = dict(os.environ, TOUCHDOWN_DATA="/tmp/data", TOUCHDOWN_BLENDER="/tmp/blender/blender")
 n_total = a.seeds[1] - a.seeds[0]
 mc = subprocess.Popen([sys.executable, "-m", "touchdown.sim.montecarlo", "--out", a.out, "--seeds", str(a.seeds[0]),
-                       str(a.seeds[1]), "--device", "GPU", "--checkpoint", a.ckpt, "--aim-mode", a.aim_mode],
+                       str(a.seeds[1]), "--device", "GPU", "--checkpoint", a.ckpt, "--aim-mode", a.aim_mode]
+                      + (["--head-radius", str(a.head_radius)] if a.head_radius is not None else [])
+                      + (["--p-abort", str(a.p_abort)] if a.p_abort is not None else []),
                       env=env, stdout=open("/tmp/mc.log", "w"), stderr=subprocess.STDOUT)
 t0 = time.time()
 while mc.poll() is None:

@@ -30,8 +30,8 @@ class SimConfig:
     low_alt_m: float = 12.0
     decision_alt_m: float = 5.0             # CONFIRMED: back-away decision at ~5 m
     contact_vz: float = -0.10               # CONFIRMED: -10 cm/s
-    head_radius_m: float = 0.30             # ASSUMPTION (TAGSAM head ~0.3 m; verify)
-    p_abort: float = 0.10                   # ASSUMPTION
+    head_radius_m: float = 0.16             # CONFIRMED: TAGSAM outer diameter 32 cm (Walsh et al. 2022, SSR 218:20). Our first 1,000-landing run used 0.30 (conservative)
+    p_abort: float = 0.01                   # Norman et al. 2022: threshold set for >99% spacecraft safety, so about 0.01; the numeric value is not published. First run used 0.10
     nn_max_alt_m: float = 22.0              # NN frames used for the live hazard map below this altitude
     # --- dispersions (1-sigma); ASSUMPTIONS, see docs/references.md
     start_offset_m: float = 1.5             # horizontal offset of the start point from the nominal approach
@@ -111,7 +111,8 @@ def fly(site: SiteAssets, renderer, cam: Camera, cfg: SimConfig, seed: int, net=
     live = LiveHazardGrid(site.dtm.z.shape, res) if net is not None else None
     t, matchpoint_done, log = 0.0, False, []
     result: dict = {"seed": seed, "sun_az": az, "sun_el": el, "target": tgt.tolist(),
-                    "target_clearance_m": tgt_clearance, "aim_mode": cfg.aim_mode}
+                    "target_clearance_m": tgt_clearance, "aim_mode": cfg.aim_mode,
+                    "head_radius_m": cfg.head_radius_m, "p_abort_threshold": cfg.p_abort}
     while True:
         alt_true = x_true[2]
         f = renderer.render(cam, x_true, R, sun_true, want_pos=record)

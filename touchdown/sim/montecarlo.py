@@ -18,7 +18,7 @@ from touchdown.sim.landing import SimConfig, fly
 
 
 def run(out: Path, seeds: range, device: str = "CPU", checkpoint: str | None = None, samples: int = 16,
-        aim_mode: str = "best") -> None:
+        aim_mode: str = "best", head_radius_m: float | None = None, p_abort: float | None = None) -> None:
     out.mkdir(parents=True, exist_ok=True)
     todo = [s for s in seeds if not (out / f"landing_{s:05d}.json").exists()]
     print(f"{len(todo)} of {len(seeds)} landings to run", flush=True)
@@ -30,7 +30,12 @@ def run(out: Path, seeds: range, device: str = "CPU", checkpoint: str | None = N
     if checkpoint:
         from touchdown.vision.infer import HazardNet
         net = HazardNet(checkpoint)
-    cam, cfg = Camera(640, 480, 44.0), SimConfig(aim_mode=aim_mode)
+    cfg = SimConfig(aim_mode=aim_mode)
+    if head_radius_m is not None:
+        cfg.head_radius_m = head_radius_m
+    if p_abort is not None:
+        cfg.p_abort = p_abort
+    cam = Camera(640, 480, 44.0)
     with BlenderRenderer(path, samples=samples, device=device) as r:
         for s in todo:
             t0 = time.time()
@@ -53,5 +58,7 @@ if __name__ == "__main__":
     ap.add_argument("--samples", type=int, default=16)
     ap.add_argument("--aim-mode", default="best", choices=["best", "random_safe"],
                     help="best: max-clearance aim point; random_safe: random aim point with thin margins (harder)")
+    ap.add_argument("--head-radius", type=float, default=None, help="metres; default is the SimConfig value (0.16, TAGSAM outer radius)")
+    ap.add_argument("--p-abort", type=float, default=None, help="hazard-probability threshold; default is the SimConfig value (0.01)")
     a = ap.parse_args()
-    run(Path(a.out), range(*a.seeds), a.device, a.checkpoint, a.samples, a.aim_mode)
+    run(Path(a.out), range(*a.seeds), a.device, a.checkpoint, a.samples, a.aim_mode, a.head_radius, a.p_abort)

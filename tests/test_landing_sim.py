@@ -59,3 +59,11 @@ def test_flight_with_random_safe_aim_records_the_aim_point():
     assert res["aim_mode"] == "random_safe" and res["target_clearance_m"] >= 0.4
     assert not np.allclose(res["target"], site.target_xy)
     assert not res.get("timeout") and res["burn_converged"]
+
+
+def test_defaults_follow_published_head_and_results_record_the_settings():
+    cfg = SimConfig(start_alt_m=30.0, matchpoint_time_s=40.0)
+    assert cfg.head_radius_m == 0.16 and cfg.p_abort == 0.01      # TAGSAM outer radius; >99% safety threshold
+    site = assets_from_dtm(synthetic_site(), margin_m=8.0)
+    res = fly(site, FakeRenderer(site.truth), Camera(192, 144, 44.0), cfg, seed=3)
+    assert res["head_radius_m"] == 0.16 and res["p_abort_threshold"] == 0.01

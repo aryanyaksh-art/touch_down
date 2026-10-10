@@ -5,26 +5,26 @@ Status: CONFIRMED = read in a source during this project. VERIFY = recalled, che
 ## Mission performance (comparison targets)
 | Quantity | Value | Status | Source |
 |---|---|---|---|
-| TAG delivery accuracy | within ~1 m of target | CONFIRMED (summary) | NFT flight-performance summary, U. Arizona experts page; check Lauretta 2022 / Berry 2022 for exact figure |
-| Predicted vs. actual contact | 3.5 cm and 1.4 s | CONFIRMED (summary) | same; locate the primary paper |
+| TAG delivery accuracy | within 1 m of the targeted location | CONFIRMED (primary) | Norman et al. 2022, Planetary Science Journal 3:101, doi 10.3847/PSJ/ac5183 |
+| Predicted vs. actual contact | 3.5 cm and 1.4 s (NFT-predicted vs. actual location and time of touch) | CONFIRMED (primary) | Norman et al. 2022, Planetary Science Journal 3:101, doi 10.3847/PSJ/ac5183 |
 | Pre-TAG predicted abort chance | < 6% | CONFIRMED | NASA "OSIRIS-REx Begins its Countdown to TAG" |
-| Back-away decision altitude | ~5 m (16 ft) | CONFIRMED | NASA countdown-to-TAG |
-| Checkpoint / Matchpoint | ~125 m / ~54 m | CONFIRMED | NASA countdown-to-TAG |
+| Back-away (wave-off) altitude | 5 m above the surface | CONFIRMED (primary) | Norman et al. 2022, Planetary Science Journal 3:101, doi 10.3847/PSJ/ac5183; also NASA countdown-to-TAG |
+| Checkpoint / Matchpoint | ~125 m / ~55 m above the surface (NASA press said 54 m) | CONFIRMED (primary) | Norman et al. 2022, Planetary Science Journal 3:101, doi 10.3847/PSJ/ac5183 |
 | Contact vertical velocity | -10 cm/s | CONFIRMED | NASA countdown-to-TAG |
-| Required delivery accuracy | within ~7 m (pre-TAG requirement) | CONFIRMED (press) | NASA countdown-to-TAG |
+| Formal delivery requirement | touch within 25 m of the target with vertical and lateral velocity errors of at most 2 cm/s each | CONFIRMED (primary, citing Lauretta et al. 2017) | Norman et al. 2022, Planetary Science Journal 3:101, doi 10.3847/PSJ/ac5183. The NASA press figure of ~7 m is not the formal requirement. |
 
 ## Bennu boulder statistics
 | Quantity | Value | Status | Source |
 |---|---|---|---|
 | Candidate-site PSFD slopes | -3.0 +/- 0.2 to -2.3 +/- 0.1 (0.01 m/px images) | CONFIRMED | Burke et al. 2021, Remote Sensing 13(7):1315 |
 | Particle size range mapped | 0.3 cm to 95 m | CONFIRMED | Burke et al. 2021 |
-| Global slope | about -2.9 +/- 0.3 | VERIFY | DellaGiustina et al. 2019, Nat. Astron. |
+| Global slope | -2.9 +/- 0.3, fitted for boulders of 8 m and larger only | CONFIRMED | DellaGiustina et al. 2019, Nat. Astron. 3:341. Our -2.9 for sub-metre injected boulders is an extrapolation below the fitted range; Burke 2021 (-2.3 to -3.0 at candidate sites, down to cm sizes) supports the range. |
 
 ## Hazard definition (needed for labels and back-away logic)
 | Quantity | Value | Status |
 |---|---|---|
-| Hazardous object size | >= 21 cm longest dimension (min size that obstructs the inner annulus of the TAGSAM head) | CONFIRMED (secondary: search summary of NASA/mission text; confirm in Enos/Berry) |
-| Max slope TAGSAM can accommodate | 14 deg | CONFIRMED (same caveat) |
+| Hazardous object size | particles larger than 21 cm (the TAGSAM inner opening diameter) can frustrate sampling | CONFIRMED (primary) | Walsh et al. 2022, Space Science Reviews 218:20, doi 10.1007/s11214-022-00887-2 |
+| Max slope TAGSAM can accommodate | 14 deg | CONFIRMED (primary) | Walsh et al. 2022, Space Science Reviews 218:20, doi 10.1007/s11214-022-00887-2 |
 | Nightingale sampling region | ~8 m diameter (26 ft) | CONFIRMED (NASA) |
 | Hazard-map resolution | TODO | find in Berry et al. 2022 / Enos et al. |
 | Hazard map classes | green (safe) / yellow (caution) / red (hazard); contact predicted in yellow or red => abort | CONFIRMED (NASA) |
@@ -32,7 +32,20 @@ Status: CONFIRMED = read in a source during this project. VERIFY = recalled, che
 ## Camera
 | Quantity | Value | Status |
 |---|---|---|
-| NavCam (TAGCAMS) resolution / FOV | 2592x1944 px, ~44x32 deg | VERIFY | Bos et al. 2018 |
+| NavCam (TAGCAMS) resolution / FOV | 2592x1944 px, ~44x32 deg (NavCam 1) | CONFIRMED (abstract/instrument description) | Bos et al. 2018, Space Science Reviews 214:37 |
+
+## Confirmed in primary sources (added 2026-10-10)
+- TAGSAM head: **32 cm outer diameter, 21 cm inner diameter** (Walsh et al. 2022, Space Science Reviews 218:20, doi 10.1007/s11214-022-00887-2). Outer radius 0.16 m.
+- Hazard probability and threshold (Norman et al. 2022, Planetary Science Journal 3:101, doi 10.3847/PSJ/ac5183): once NFT estimates the touch location, the hazard algorithm "estimated the likelihood of unsafe contact by integrating the probability of hazardous contact for each point within the deliverability uncertainty", compared with a threshold "selected by the project such that there was >99% probability for spacecraft safety". The numeric threshold is not given.
+- NFT uncertainty at the end (Norman et al. 2022, Planetary Science Journal 3:101, doi 10.3847/PSJ/ac5183): 3-sigma uncertainty on the estimate of about 62 cm east-west and 46 cm north-south. (The same paper also quotes "a 3-sigma position uncertainty of approximately 1.2 m"; context to confirm before using it.)
+- Hazard-map resolution: still TODO (not in the NFT paper).
+
+## Assumptions our code made that the sources contradict or tighten
+| Parameter | Used so far | Source says | Action |
+|---|---|---|---|
+| Head radius | 0.30 m (assumed "~0.3 m") | outer diameter 32 cm, so radius 0.16 m | rerun with 0.16 m as the headline; keep 0.30 m as a conservative sensitivity case |
+| Abort threshold | 0.10 (assumed) | threshold set for >99% safety, i.e. about 0.01 | rerun with 0.01; results were insensitive to the threshold from 0.01 to 0.5 in the sensitivity sweep, so this changes little |
+| Delivery requirement | none | 25 m | no code change; compare the published ~1 m result, not a requirement |
 
 ## Data products
 - NASA SVS Bennu models (https://svs.gsfc.nasa.gov/5069):
@@ -65,4 +78,4 @@ Status: CONFIRMED = read in a source during this project. VERIFY = recalled, che
 ## Detector results (run unet_v1, final) and provisional Monte Carlo
 - Real Nightingale test: mIoU 0.39, boulder IoU 0.26, 30% of hazard pixels called safe, 20% of safe pixels called hazard. Synthetic validation: mIoU 0.54, boulder IoU 0.60.
 - Provisional Monte Carlo (69 landings): median delivery error 0.31 m, 94% within 1 m, predicted vs. actual contact 3.2 cm median, back-away rate 1.4% (baseline). With the detector: back-away 8.7%, needless 7.2%, hazard contacts unchanged at 1.4%. Final numbers pending the 1,000-landing run.
-- Not yet verified against primary papers: NavCam parameters, exact published delivery-accuracy figure, TAGSAM head radius.
+- Verified against primary papers on 2026-10-10: delivery accuracy, predicted-vs-actual contact, NavCam, TAGSAM head dimensions, hazard thresholds (see above). Still open: hazard-map resolution, numeric abort threshold.
