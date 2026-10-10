@@ -37,7 +37,7 @@ It was built as a recreation exercise, so it follows the real mission's method f
 | Camera simulator | Done. Blender frames with pixel-exact hazard labels; 4,500 labelled images generated |
 | Navigation (NFT + Kalman filter) | Done. Centimetre-level in simulation; the filter is overconfident (documented) |
 | Descent controller | Done. Matchpoint-style burn, 10 cm/s ballistic descent, back-away decision at 5 m |
-| Hazard detector (extension) | v1 was weak on real terrain (boulder IoU 0.22). **v2** (angular synthetic boulders + real west-half frames) reaches boulder IoU 0.55-0.66 on the held-out east half; in a harder 850-landing test it cuts hazard contacts on a stale map from 1.9% to 0.6% but adds ~8 points of needless back-aways ([validation](docs/validation.md)) |
+| Hazard detector (extension) | v1 was weak on real terrain (boulder IoU 0.22). **v2** (angular synthetic boulders + real west-half frames) reaches boulder IoU 0.55-0.66 on the held-out east half; in a harder 1,000-landing test it cuts hazard contacts on a stale map from 1.9% to 0.6% but adds ~7 points of needless back-aways ([validation](docs/validation.md)) |
 | 1,000-landing Monte Carlo | Running. Provisional (first 69 landings): median delivery error 0.31 m, 94% within 1 m, predicted vs. actual contact 3.2 cm |
 | Replay website | Built; replay data publishes after the Monte Carlo finishes |
 

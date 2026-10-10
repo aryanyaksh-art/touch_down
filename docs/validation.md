@@ -110,25 +110,27 @@ Replace with the final table after the run (`python -m touchdown.analysis.compar
 
 **Reading the provisional result.** The detector does not reduce hazard contacts in this experiment and adds needless back-aways. The aim point has 2.3 m of clearance from any hazard, so the baseline already succeeds 97% of the time and there is little for a detector to add; and the stale-map scenario (boulders under 0.8 m removed) barely changes the prior. The experiment may simply be too easy to show a benefit. See section 7.
 
-### 6b. Harder experiment, detector v2 (Kaggle, 850 landings, seeds 0-849)
+### 6b. Harder experiment, detector v2 (Kaggle, 1,000 landings, seeds 0-999)
 
-Each landing aims at a **random** point that is safe on the true map (clearance of at least 0.4 m, 10 m from the tile edge) instead of the single safest point, so margins are thin and a stale map or a detector can matter. This is an extension, not the mission's site selection. The detector is v2 (section 3c). The remaining 150 landings (seeds 850-999) are not flown yet, so this is 850 of the planned 1,000. Flights: 25,342 s on 2 T4 GPUs.
+Each landing aims at a **random** point that is safe on the true map (clearance of at least 0.4 m, 10 m from the tile edge) instead of the single safest point, so margins are thin and a stale map or a detector can matter. This is an extension, not the mission's site selection. The detector is v2 (section 3c). Flown in two Kaggle sessions on 2 T4 GPUs (seeds 0-849, then 850-999); the second reused the first's saved landings, so the summary below covers all 1,000.
 
-| Quantity | TouchDown (n=850) | Published |
+| Quantity | TouchDown (n=1,000) | Published |
 |---|---|---|
-| Delivery error, median / 95th pct | 0.38 m / 1.28 m | within ~1 m (one real landing) |
-| Within 1 m of the aim point | 91.6% | 1 of 1 |
+| Delivery error, median / 95th pct | 0.39 m / 1.26 m | within ~1 m (one real landing) |
+| Within 1 m of the aim point | 91.9% | 1 of 1 |
 | Predicted vs. actual contact, median / 95th pct | 3.4 cm / 7.4 cm | 3.5 cm |
-| Back-away rate, baseline, complete map | 18.0% | < 6% predicted pre-TAG (not comparable: our aim points are deliberately marginal) |
+| Back-away rate, baseline, complete map | 17.7% | < 6% predicted pre-TAG (not comparable: our aim points are deliberately marginal) |
 
 | Scenario | Back-away | Hit a hazard (proceeded) | Needless back-away | Safe touchdown |
 |---|---|---|---|---|
-| Complete map, baseline | 18.0% | 0.5% | 1.9% | 81.5% |
-| Stale map, baseline | 16.4% | 1.9% | 1.6% | 81.8% |
-| Complete map + detector | 25.8% | 0.2% | 9.4% | 74.0% |
-| Stale map + detector | 25.3% | 0.6% | 9.3% | 74.1% |
+| Complete map, baseline | 17.7% | 0.6% | 1.8% | 81.7% |
+| Stale map, baseline | 16.2% | 1.9% | 1.6% | 81.9% |
+| Complete map + detector | 25.1% | 0.3% | 8.9% | 74.6% |
+| Stale map + detector | 24.7% | 0.6% | 8.8% | 74.7% |
 
-**Reading it.** With a stale prior map the baseline hits a hazard in 1.9% of landings (about 16); adding the detector cuts that to 0.6% (about 5). That is real but costs a lot: needless back-aways rise from 1.6% to 9.3%, about six extra needless aborts per hazard contact avoided. The cause is the detector's false-alarm rate (22-28% of safe pixels called hazard, section 3c). The counts are small (16 vs 5 events), so treat the benefit as suggestive. The result is conditional on the assumptions: head radius 0.3 m (at 0.5 m the stale baseline hits hazards in 4.4%), the aim-point rule above, and the stale-map cutoff. Hazard contacts are insensitive to the abort threshold (0.01 to 0.5) and to the stale cutoff from 0.5 to 4 m. The earlier max-clearance experiment (513 landings with v1) found no benefit because the aim point was too safe to need a detector.
+**Reading it.** With a stale prior map the baseline hits a hazard in 1.9% of landings (19 of 1,000); adding the detector cuts that to 0.6% (6 of 1,000). That is real but costly: needless back-aways rise from 1.6% to 8.8% (16 to 88 landings), about five to six extra needless back-aways per hazard contact avoided. The cause is the detector's false-alarm rate (22-28% of safe pixels called hazard, section 3c). The event counts are small, so the benefit is suggestive rather than precise. The result is conditional on the assumptions: head radius 0.3 m (at 0.5 m the stale baseline hits hazards in 4.1-4.3%), the aim-point rule above, and the stale-map cutoff. Hazard contacts do not depend on the stale cutoff between 0.8 and 4 m, nor on the abort threshold (0.01 to 0.5). The earlier max-clearance experiment (513 landings with v1) found no benefit because the aim point was too safe to need a detector.
+
+Replays on the website are re-flown on a different GPU from these runs, so small rendering differences are possible.
 
 ## 7. Known weaknesses and planned fixes
 
