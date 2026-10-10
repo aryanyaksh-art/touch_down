@@ -107,6 +107,7 @@ def main():
     ap.add_argument("--mc", default=None)
     ap.add_argument("--checkpoint", default=None)
     ap.add_argument("--device", default="CPU")
+    ap.add_argument("--aim-mode", default="best", choices=["best", "random_safe"], help="must match the Monte Carlo that produced --mc")
     a = ap.parse_args()
     out = Path(a.out)
     path = data_dir() / "nightingale_dtm_5cm.npz"
@@ -126,7 +127,7 @@ def main():
     if a.checkpoint:
         from touchdown.vision.infer import HazardNet
         net = HazardNet(a.checkpoint)
-    cam, cfg = Camera(640, 480, 44.0), SimConfig()
+    cam, cfg = Camera(640, 480, 44.0), SimConfig(aim_mode=a.aim_mode)
     index = []
     with BlenderRenderer(path, samples=16, device=a.device) as r:
         for i, (seed, title, blurb) in enumerate(picks):
