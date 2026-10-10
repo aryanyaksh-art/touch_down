@@ -38,7 +38,7 @@ It was built as a recreation exercise, so it follows the real mission's method f
 | Navigation (NFT + Kalman filter) | Done. Centimetre-level in simulation; the filter is overconfident (documented) |
 | Descent controller | Done. Matchpoint-style burn, 10 cm/s ballistic descent, back-away decision at 5 m |
 | Hazard detector (extension) | v1 was weak on real terrain (boulder IoU 0.22). **v2** (angular synthetic boulders + real west-half frames) reaches boulder IoU 0.55-0.66 on the held-out east half; in a harder 1,000-landing test it cuts hazard contacts on a stale map from 1.9% to 0.6% but adds ~7 points of needless back-aways ([validation](docs/validation.md)) |
-| 1,000-landing Monte Carlo | Running. Provisional (first 69 landings): median delivery error 0.31 m, 94% within 1 m, predicted vs. actual contact 3.2 cm |
+| 1,000-landing Monte Carlo | **Done** (harder test: random thin-margin aim points, detector v2). Median delivery error 0.39 m, 91.9% within 1 m, predicted vs. actual contact 3.4 cm median (published: 3.5 cm). See [validation](docs/validation.md) |
 | Replay website | Built; replay data publishes after the Monte Carlo finishes |
 
 The provisional numbers sit in the same range as the published single landing (within about 1 m; 3.5 cm predicted vs. actual), but one real landing is not a distribution, so this shows plausibility, not equivalence.
