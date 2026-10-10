@@ -13,6 +13,11 @@ __pycache__/
 # node
 web/node_modules/
 web/dist/
+*.tsbuildinfo
+# NOTE: web/public/data is the website's published data. It is ignored by the data/ rule above for now;
+# add `!web/public/data/` once the real run is exported.
+# local tool settings
+.claude/settings.local.json
 # os/editor
 .DS_Store
 Thumbs.db

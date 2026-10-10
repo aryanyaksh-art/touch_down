@@ -12,6 +12,8 @@ A from-scratch recreation of the autonomous sample collection NASA's OSIRIS-REx 
 
 <img src="docs/img/nightingale.png" width="780" alt="Nightingale terrain and its hazard map">
 
+**Live site:** https://aryanyaksh-art.github.io/touch_down/ (a night sky of simulated landings; shows labelled sample data until the final run is published)
+
 <sub>Nightingale, OSIRIS-REx's sample site, from NASA's public 5 cm terrain model. Right: the ground-truth hazards (boulders yellow, steep ground red) and the 8 m sampling zone.</sub>
 
 </div>
@@ -39,7 +41,7 @@ It was built as a recreation exercise, so it follows the real mission's method f
 | Descent controller | Done. Matchpoint-style burn, 10 cm/s ballistic descent, back-away decision at 5 m |
 | Hazard detector (extension) | v1 was weak on real terrain (boulder IoU 0.22). **v2** (angular synthetic boulders + real west-half frames) reaches boulder IoU 0.55-0.66 on the held-out east half; in a harder 1,000-landing test it cuts hazard contacts on a stale map from 1.9% to 0.6% but adds ~7 points of needless back-aways ([validation](docs/validation.md)) |
 | 1,000-landing Monte Carlo | **Done** (harder test: random thin-margin aim points, detector v2). Median delivery error 0.39 m, 91.9% within 1 m, predicted vs. actual contact 3.4 cm median (published: 3.5 cm). See [validation](docs/validation.md) |
-| Replay website | Built; replay data publishes after the Monte Carlo finishes |
+| Website | **Live.** Scroll from a telescope into a galaxy of landings, one star each; open a star for its picture and decision. Shows labelled sample data until the final run (published parameters, 1,000 landings) is exported |
 
 The final numbers sit in the same range as the published single landing (within about 1 m; 3.5 cm predicted vs. actual), but one real landing is not a distribution, so this shows plausibility, not equivalence.
 
@@ -92,6 +94,16 @@ Heavy steps (rendering, training, Monte Carlo) are written for a free Colab or K
 | 2. Train the hazard detector | Colab GPU | [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/aryanyaksh-art/touch_down/blob/main/notebooks/02_train_unet.ipynb) |
 | 3. Run the Monte Carlo | Colab GPU | [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/aryanyaksh-art/touch_down/blob/main/notebooks/03_montecarlo.ipynb) |
 
+Later runs moved to Kaggle (Colab's free GPU allowance ran out, and Kaggle needs no Google Drive). Import these notebooks into Kaggle with a T4 x2 GPU:
+
+| Step | Notebook |
+|---|---|
+| 1,000-landing Monte Carlo (hard aim points) | `notebooks/05_kaggle.ipynb` |
+| Same, with the published head radius and abort threshold | `notebooks/07_kaggle_faithful.ipynb` |
+| Replays for the website | `notebooks/08_kaggle_replays.ipynb` |
+| Navigation-filter calibration sweep | `notebooks/09_kaggle_filter_sweep.ipynb` |
+| One analysed picture per landing | `notebooks/10_kaggle_pictures.ipynb` |
+
 Locally:
 
 ```bash
@@ -101,7 +113,7 @@ uv run python scripts/build_dtm.py             # 5 cm height grid of Nightingale
 uv run pytest
 ```
 
-The replay website lives in [`web/`](web/) (Vite + React); see its README.
+The website lives in [`web/`](web/) (Vite + React + Motion); see its README.
 
 ## Repository map
 
@@ -115,11 +127,11 @@ touchdown/     the package
   nav/           NFT: landmark templates, correlation, Kalman filter
   gnc/           dynamics, targeting burn, back-away decision
   sim/           closed-loop landing, Monte Carlo
-  analysis/      comparison with published data, sensitivity, replay export
+  analysis/      comparison with published data, sensitivity, replay and picture export
 configs/       physical constants and thresholds, each with its source
 scripts/       data download, figures, demos and benchmarks
-notebooks/     the three Colab notebooks
-web/           replay website
+notebooks/     Colab (01-04, 06) and Kaggle (05, 07-10) notebooks
+web/           the website: telescope zoom, galaxy of landings, replays
 docs/          method, validation, references, expert-review prep
 tests/         pytest suite (runs in CI)
 ```
