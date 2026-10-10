@@ -34,7 +34,14 @@ Data in `%LOCALAPPDATA%/TouchDown/data`: site OBJ, global OBJ, `nightingale_dtm_
 No PyTorch wheels exist for Windows ARM64. For local smoke tests there is an emulated x64 env at `%LOCALAPPDATA%/TouchDown/venv-torch` (run with `PYTHONPATH=. <venv>/Scripts/python.exe -m pytest`). Real training runs on Colab. torch tests use `pytest.importorskip`.
 
 ## Web
-`web/` is Vite + React + TS. Rollup's native binary does not load on Windows ARM, so `package.json` overrides rollup with `@rollup/wasm-node`. Build: `cd web && npm run build`. Replay data lives in `web/public/data` (written by `python -m touchdown.analysis.export_replays`). Deploy workflow: `.github/workflows/pages.yml` (Pages must be enabled in repo settings, source = GitHub Actions).
+`web/` is Vite + React + TS + Motion (`motion/react`). Rollup's native binary does not load on Windows ARM, so `package.json` overrides rollup with `@rollup/wasm-node`. Build: `cd web && npm run build`. Dev: preview server `web` in `.claude/launch.json`.
+- Design (agreed with the user): flat night sky, NO gradients anywhere, Space Mono + Unbounded, orange-red `#ff5a36` only for hazards, mixed real star colours. Built with the animate / emil-design-eng / animation-vocabulary / impeccable / design-taste skills; keep using them for any web change. Zero em-dashes in visible copy.
+- Flow: scroll zooms a flat vector telescope (`Telescope.tsx`) into its eyepiece, a clip-path circle reveals the galaxy (`Galaxy.tsx`, canvas, one star per landing, three spiral arms by outcome, distance from core = delivery error rank). Click a star: `LandingOverlay` unfolds from it (clip-path circle). Replay stars show `ReplayViewer`; others show `DataCard`. Tour, hash links (`#/landing/<seed>`), section dots, counting numbers.
+- Phones and reduced motion get `SimpleHero` (still picture, then the galaxy). Desktop-first.
+- `lib/model.ts` builds stars from `landings.json` (+ `index.json` for replay seeds); `lib/tour.ts` picks the three tour landings from the data. If `landings.json` is missing the page shows sample data (`demoLandings`) with a visible label.
+- Replay data lives in `web/public/data` (written by `python -m touchdown.analysis.export_replays` and `scripts/build_web_data.py`). **`.gitignore` ignores `data/` so this folder is NOT committed and the Pages build has no data yet: add `!web/public/data/` to `.gitignore` when the real data is ready.**
+- Testing quirks: the Browser pane throttles rAF while hidden, so animations look stuck; call `tabs_select` on the tab and wait a few seconds before judging a screenshot. Local fake data for UI tests must be deleted before the real data goes in. Class names in `.overlay` collide easily; the camera layers are `.cam-layer`.
+- Deploy workflow: `.github/workflows/pages.yml` (Pages must be enabled in repo settings, source = GitHub Actions).
 
 ## Render performance (measured)
 - Blender Cycles beauty render, 640x480, 16 spp: 0.3 s on a Colab T4, ~1.3 s on the 8-core laptop CPU (with `use_persistent_data`).
