@@ -68,6 +68,7 @@ export default function SiteMap({ site, replay, k, showPrior }: Props) {
               ry={Math.max(2 * d.contact_pred_sigma[1], 0.05)}
               className="pred-contact"
             />
+            {d.unsafe_contact && <circle cx={d.contact_true[0]} cy={-d.contact_true[1]} r={0.3} className="pulse" />}
             <circle cx={d.contact_true[0]} cy={-d.contact_true[1]} r={0.3} className={d.unsafe_contact ? 'contact-bad' : 'contact-ok'} />
           </>
         )}

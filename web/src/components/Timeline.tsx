@@ -1,3 +1,4 @@
+import { CaretLeft, CaretRight, Pause, Play } from '@phosphor-icons/react'
 import type { Replay } from '../types'
 
 interface Props {
@@ -38,9 +39,9 @@ export default function Timeline({ replay, k, setK, playing, setPlaying }: Props
     <div className="panel timeline">
       <div className="controls">
         <button onClick={() => setPlaying(!playing)} aria-label={playing ? 'Pause' : 'Play'}>
-          {playing ? '❚❚' : '▶'}
+          {playing ? <Pause size={16} weight="fill" /> : <Play size={16} weight="fill" />}
         </button>
-        <button onClick={() => { setPlaying(false); setK(Math.max(0, k - 1)) }} aria-label="Previous frame">‹</button>
+        <button onClick={() => { setPlaying(false); setK(Math.max(0, k - 1)) }} aria-label="Previous frame"><CaretLeft size={16} /></button>
         <input
           type="range"
           min={0}
@@ -49,7 +50,7 @@ export default function Timeline({ replay, k, setK, playing, setPlaying }: Props
           onChange={(e) => { setPlaying(false); setK(Number(e.target.value)) }}
           aria-label="Frame"
         />
-        <button onClick={() => { setPlaying(false); setK(Math.min(n - 1, k + 1)) }} aria-label="Next frame">›</button>
+        <button onClick={() => { setPlaying(false); setK(Math.min(n - 1, k + 1)) }} aria-label="Next frame"><CaretRight size={16} /></button>
       </div>
       <div className="sparks">
         <Spark xs={t} ys={replay.frames.map((f) => f.alt)} k={k} label="Altitude" unit="m" fmt={(v) => v.toFixed(1)} />
@@ -58,7 +59,7 @@ export default function Timeline({ replay, k, setK, playing, setPlaying }: Props
       </div>
       {replay.matchpoint_t != null && (
         <div className="muted small">
-          Matchpoint-style burn at T+{replay.matchpoint_t.toFixed(0)} s ({((replay.burn_dv ?? 0) * 1000).toFixed(1)} mm/s)
+          Matchpoint-style burn at T+{replay.matchpoint_t.toFixed(0)} s, {((replay.burn_dv ?? 0) * 1000).toFixed(1)} mm/s
         </div>
       )}
     </div>

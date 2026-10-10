@@ -1,18 +1,19 @@
 import type { LandingPoint, Site, Summary } from '../types'
+import CountText from './CountText'
 
 const pct = (v: number) => `${(v * 100).toFixed(1)}%`
 const NAMES: Record<string, string> = {
-  complete_baseline: 'Complete map · baseline',
-  stale_baseline: 'Stale map · baseline',
-  complete_nn: 'Complete map · + detector',
-  stale_nn: 'Stale map · + detector',
+  complete_baseline: 'Complete map, baseline',
+  stale_baseline: 'Stale map, baseline',
+  complete_nn: 'Complete map, + detector',
+  stale_nn: 'Stale map, + detector',
 }
 
 function Stat({ label, value, sub }: { label: string; value: string; sub: string }) {
   return (
     <div className="stat">
       <div className="stat-label">{label}</div>
-      <div className="stat-value">{value}</div>
+      <div className="stat-value"><CountText value={value} /></div>
       <div className="stat-sub">{sub}</div>
     </div>
   )
@@ -83,12 +84,12 @@ export default function Dashboard({ site, summary, landings }: { site: Site | nu
         <Stat
           label="Delivery error, median"
           value={`${d.median.toFixed(2)} m`}
-          sub={`95th percentile ${d.p95.toFixed(2)} m${d.median_ci95 ? ` · median 95% CI ${d.median_ci95[0].toFixed(2)}–${d.median_ci95[1].toFixed(2)}` : ''}`}
+          sub={`95th percentile ${d.p95.toFixed(2)} m${d.median_ci95 ? `. Median 95% CI ${d.median_ci95[0].toFixed(2)} to ${d.median_ci95[1].toFixed(2)}` : ''}`}
         />
         <Stat
           label="Within 1 m of target"
           value={pct(d.within_1m.rate)}
-          sub={`95% CI ${pct(d.within_1m.ci95[0])}–${pct(d.within_1m.ci95[1])} · OSIRIS-REx: within 1 m (one landing)`}
+          sub={`95% CI ${pct(d.within_1m.ci95[0])} to ${pct(d.within_1m.ci95[1])}. OSIRIS-REx: within 1 m (one landing).`}
         />
         <Stat
           label="Predicted vs. actual contact"
@@ -162,8 +163,8 @@ export default function Dashboard({ site, summary, landings }: { site: Site | nu
                     <td>{e.needless_baseline} → {e.needless_with_detector}</td>
                     <td>
                       {e.extra_needless_per_hazard_avoided == null
-                        ? '–'
-                        : `${e.extra_needless_per_hazard_avoided.toFixed(1)}${e.extra_needless_per_hazard_avoided_ci95 ? ` (${e.extra_needless_per_hazard_avoided_ci95[0].toFixed(1)}–${e.extra_needless_per_hazard_avoided_ci95[1].toFixed(1)})` : ''}`}
+                        ? 'n/a'
+                        : `${e.extra_needless_per_hazard_avoided.toFixed(1)}${e.extra_needless_per_hazard_avoided_ci95 ? ` (${e.extra_needless_per_hazard_avoided_ci95[0].toFixed(1)} to ${e.extra_needless_per_hazard_avoided_ci95[1].toFixed(1)})` : ''}`}
                     </td>
                     <td>{e.mcnemar_p < 0.001 ? '<0.001' : e.mcnemar_p.toFixed(3)}</td>
                   </tr>

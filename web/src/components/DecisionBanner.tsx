@@ -18,7 +18,7 @@ export default function DecisionBanner({ replay, k, prior, detector }: Props) {
     return (
       <div className="banner pending">
         <div className="banner-main">DESCENDING</div>
-        <div className="muted">{f.alt.toFixed(1)} m · decision at about 5 m</div>
+        <div className="muted">{f.alt.toFixed(1)} m. Decision at about 5 m.</div>
       </div>
     )
   }
@@ -40,13 +40,13 @@ export default function DecisionBanner({ replay, k, prior, detector }: Props) {
       : 'Safe touchdown.'
   const good = abort ? d.unsafe_contact : !d.unsafe_contact
   return (
-    <div className={`banner ${abort ? 'abort' : 'land'}`}>
+    <div className={`banner ${abort ? 'abort' : 'land'}${d.unsafe_contact && !abort ? ' miss' : ''}`}>
       <div className="banner-main">{verdict}</div>
       <div className="banner-sub">
         <span>Hazard probability at predicted contact: <b>{(p * 100).toFixed(0)}%</b></span>
         <span className={good ? 'ok' : 'bad'}>{outcome}</span>
         <span className="muted">
-          landed {d.delivery_error_m.toFixed(2)} m from target · prediction off by {(d.pred_vs_actual_m * 100).toFixed(0)} cm
+          Landed {d.delivery_error_m.toFixed(2)} m from target. Prediction off by {(d.pred_vs_actual_m * 100).toFixed(0)} cm.
         </span>
       </div>
     </div>
