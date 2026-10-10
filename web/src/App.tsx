@@ -1,14 +1,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { AnimatePresence, motion, useReducedMotion, useScroll, useTransform } from 'motion/react'
-import { GithubLogo } from '@phosphor-icons/react'
-import Dashboard from './components/Dashboard'
+import { AnimatePresence, motion, useMotionValueEvent, useReducedMotion, useScroll, useTransform } from 'motion/react'
+import { ArrowUp, GithubLogo } from '@phosphor-icons/react'
 import DataCard from './components/DataCard'
-import Hero from './components/Hero'
+import Hero, { HERO_REST } from './components/Hero'
 import LandingOverlay from './components/LandingOverlay'
+import Reel, { PART_SPLIT, reelIndexAt, reelSceneTop } from './components/Reel'
 import ReplayViewer from './components/ReplayViewer'
+import Results from './components/Results'
 import SectionDots, { type Section } from './components/SectionDots'
 import Starfield from './components/Starfield'
-import Story from './components/Story'
 import { useStatic } from './data'
 import { OUTCOME_LABEL, buildStars, demoLandings, outcomeOf, viewKey, type View } from './lib/model'
 import { pickExamples, type Example } from './lib/tour'
@@ -93,17 +93,32 @@ export default function App() {
 
   const goto = useCallback(
     (id: string) => {
-      const el = document.getElementById(id)
-      if (!el) return
       const behavior: ScrollBehavior = reduce ? 'auto' : 'smooth'
+      const el = document.getElementById(id === 'scenes' ? 'story' : id)
+      if (!el) return
       if (id === 'sky' && !narrow) {
         // land where the galaxy is fully revealed, not at the telescope
         const top = el.getBoundingClientRect().top + window.scrollY
-        window.scrollTo({ top: top + (el.offsetHeight - window.innerHeight) * 0.5, behavior })
+        window.scrollTo({ top: top + (el.offsetHeight - window.innerHeight) * HERO_REST, behavior })
+      } else if (id === 'story' || id === 'scenes') {
+        window.scrollTo({ top: reelSceneTop(el, id === 'story' ? 0 : PART_SPLIT), behavior })
       } else el.scrollIntoView({ behavior, block: 'start' })
     },
     [reduce, narrow],
   )
+
+  // which side dot is lit: decided from the real scroll position, including which scene of the reel is showing
+  const [active, setActive] = useState('sky')
+  const computeActive = useCallback(() => {
+    const reel = document.getElementById('story')
+    const res = document.getElementById('results')
+    if (!reel) return 'sky'
+    const y = window.scrollY
+    const reelTop = reel.getBoundingClientRect().top + y
+    if (y + window.innerHeight * 0.5 < reelTop) return 'sky'
+    if (res && y + window.innerHeight * 0.5 >= res.getBoundingClientRect().top + y) return 'results'
+    return reelIndexAt(reel, y) < PART_SPLIT ? 'story' : 'scenes'
+  }, [])
 
   const pickNearest = (n: number) => {
     let lo = 0
@@ -120,6 +135,8 @@ export default function App() {
   const openStar = open ? stars.find((s) => s.seed === open.seed) : undefined
   const { scrollY } = useScroll()
   const barOpacity = useTransform(scrollY, [160, 360], [0, 1])
+  useMotionValueEvent(scrollY, 'change', () => setActive(computeActive()))
+  useEffect(() => setActive(computeActive()), [computeActive, stars.length])
   const max = sorted.length ? sorted[sorted.length - 1] : 0
 
   const hud = (
@@ -199,7 +216,10 @@ export default function App() {
         </a>
       </motion.header>
 
-      <SectionDots sections={SECTIONS} onGo={goto} />
+      <SectionDots sections={SECTIONS} active={active} onGo={goto} />
+      <button type="button" className="to-galaxy" data-show={active !== 'sky'} tabIndex={active === 'sky' ? -1 : 0} onClick={() => goto('sky')}>
+        <ArrowUp size={16} /> Back to the galaxy
+      </button>
 
       <main>
         <Hero
@@ -215,16 +235,16 @@ export default function App() {
           highlightPos={highlightPos}
         />
 
-        <Story
-          examples={{ clean: examples.clean?.seed ?? null, back: examples.back?.seed ?? null, old: examples.old?.seed ?? null }}
-          onOpen={(seed) => {
-            const ex = [examples.clean, examples.back, examples.old].find((e) => e?.seed === seed)
+        <Reel
+          narrow={narrow}
+          onExample={(kind) => {
+            const ex = examples[kind]
             if (ex) openExample(ex)
           }}
         />
 
         <div className="content">
-          <Dashboard site={site} summary={demo ? null : data.summary} landings={points} />
+          <Results summary={demo ? null : data.summary} points={points} sample={demo} />
         </div>
       </main>
 

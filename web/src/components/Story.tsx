@@ -1,6 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react'
-import { ArrowCounterClockwise, ArrowRight } from '@phosphor-icons/react'
-import './story.css'
+import type { ReactNode } from 'react'
 
 // A scroll-through explainer: how a probe spots hazards on an asteroid, then three landings in flat vector.
 // Every animation plays once when it arrives (and again from the replay button). Motion is CSS keyframes on
@@ -15,41 +13,8 @@ const FAR = '#1d2247'
 const ROCK = '#3a4275'
 const ROCK_DARK = '#262c55'
 
-function Anim({ label, children }: { label: string; children: ReactNode }) {
-  const ref = useRef<HTMLDivElement>(null)
-  const [go, setGo] = useState(false)
-  const [run, setRun] = useState(0)
-
-  useEffect(() => {
-    const el = ref.current
-    if (!el) return
-    const io = new IntersectionObserver(
-      (entries) => {
-        if (entries.some((e) => e.isIntersecting)) {
-          setGo(true)
-          io.disconnect()
-        }
-      },
-      { threshold: 0.55 },
-    )
-    io.observe(el)
-    return () => io.disconnect()
-  }, [])
-
-  return (
-    <div className="anim" ref={ref}>
-      <svg key={run} viewBox="0 0 800 450" className={go ? 'beat-svg go' : 'beat-svg'} role="img" aria-label={label}>
-        {children}
-      </svg>
-      <button type="button" className="anim-replay" aria-label={`Replay: ${label}`} onClick={() => { setRun((r) => r + 1); setGo(true) }}>
-        <ArrowCounterClockwise size={16} />
-      </button>
-    </div>
-  )
-}
-
 function Ground() {
-  return <path d="M0,450 V352 Q200,338 400,347 T800,340 V450 Z" fill={FAR} />
+  return <path d="M-300,450 V352 Q100,338 400,347 T1100,340 V450 Z" fill={FAR} />
 }
 
 /** The probe, flat vector. Origin is the centre of its body; the sampler head is 36 units below. */
@@ -82,18 +47,19 @@ function Boulder({ x, w, h, fill = ROCK }: { x: number; w: number; h: number; fi
 
 function LookDown() {
   return (
-    <Anim label="A probe descends over rocky ground and its camera takes a picture">
+    <>
       <Ground />
-      <Boulder x={250} w={70} h={34} />
-      <Boulder x={365} w={46} h={24} fill={ROCK_DARK} />
-      <Boulder x={150} w={40} h={18} fill={ROCK_DARK} />
-      <polygon className="a fade" style={{ animationDelay: '1.5s', animationDuration: '0.6s' }} points="300,150 215,348 385,348" fill={BLUE} opacity={0.16} />
-      <line className="a fade" style={{ animationDelay: '1.7s', animationDuration: '0.5s' }} x1={215} y1={348} x2={385} y2={348} stroke={BLUE} strokeWidth={3} />
-      <g transform="translate(300 118)">
+      <Boulder x={380} w={70} h={34} />
+      <Boulder x={495} w={46} h={24} fill={ROCK_DARK} />
+      <Boulder x={620} w={40} h={18} fill={ROCK_DARK} />
+      <polygon className="a fade" style={{ animationDelay: '1.5s', animationDuration: '0.6s' }} points="430,150 345,348 515,348" fill={BLUE} opacity={0.16} />
+      <line className="a fade" style={{ animationDelay: '1.7s', animationDuration: '0.5s' }} x1={345} y1={348} x2={515} y2={348} stroke={BLUE} strokeWidth={3} />
+      <g transform="translate(430 118)">
         <g className="a drop" style={{ animationDuration: '1.8s' }}>
           <Probe scale={0.9} />
         </g>
       </g>
+      <g transform="translate(-470 100)">
       <g className="a slide-in" style={{ animationDelay: '2.5s', animationDuration: '0.7s' }}>
         <rect x={520} y={70} width={230} height={168} rx={6} fill="#14183a" stroke={INK} strokeWidth={2} />
         <path d="M522,200 Q600,186 650,196 T748,190 V236 H522 Z" fill={FAR} />
@@ -101,7 +67,8 @@ function LookDown() {
         <path d="M680,204 l8,-14 l16,-2 l6,16 z" fill={ROCK_DARK} />
         <rect className="a flash" style={{ animationDelay: '2.5s' }} x={520} y={70} width={230} height={168} rx={6} fill={INK} opacity={0} />
       </g>
-    </Anim>
+      </g>
+    </>
   )
 }
 
@@ -114,10 +81,10 @@ function ShadowBoulders() {
     { x: 668, w: 44, h: 22 },
   ]
   return (
-    <Anim label="Low sunlight makes each boulder throw a long shadow, then each boulder is outlined">
+    <>
       <Ground />
       <g className="a pop" style={{ animationDuration: '0.8s' }}>
-        <circle cx={80} cy={96} r={24} fill={AMBER} />
+        <circle cx={60} cy={225} r={24} fill={AMBER} />
       </g>
       {items.map((b, i) => (
         <g key={b.x}>
@@ -141,18 +108,18 @@ function ShadowBoulders() {
           />
         </g>
       ))}
-    </Anim>
+    </>
   )
 }
 
 const COLS = 10
 const ROWS = 5
-const PITCH_X = 64
+const PITCH_X = 56
 const PITCH_Y = 50
-const GX = 80
-const GY = 62
+const GX = 210
+const GY = 178
 const HAZARDS = new Set(['1,0', '2,0', '6,1', '7,1', '7,2', '3,3', '4,3', '8,4', '0,4', '5,2', '9,1', '2,2'])
-const cellCenter = (c: number, r: number) => ({ x: GX + c * PITCH_X + 29, y: GY + r * PITCH_Y + 22 })
+const cellCenter = (c: number, r: number) => ({ x: GX + c * PITCH_X + 25, y: GY + r * PITCH_Y + 22 })
 
 function Grid() {
   const cells: ReactNode[] = []
@@ -168,7 +135,7 @@ function Grid() {
           style={{ ['--in-delay' as string]: `${(c + r) * 0.05}s`, ['--hot-delay' as string]: `${1.6 + (i % 7) * 0.14}s` }}
           x={GX + c * PITCH_X}
           y={GY + r * PITCH_Y}
-          width={58}
+          width={50}
           height={44}
           rx={4}
           fill={hot ? HOT : ROCK_DARK}
@@ -181,9 +148,9 @@ function Grid() {
 
 function HazardMap() {
   return (
-    <Anim label="The ground is flattened into a map and the cells with boulders or steep slopes turn red">
+    <>
       <Grid />
-    </Anim>
+    </>
   )
 }
 
@@ -192,7 +159,7 @@ function PickSpot() {
   const a = cellCenter(1, 0)
   const b = cellCenter(7, 2)
   return (
-    <Anim label="A target ring hops over hazard cells and settles on the safest cell, then the probe drifts over it">
+    <>
       <Grid />
       <g transform={`translate(${target.x} ${target.y})`}>
         <g
@@ -213,7 +180,7 @@ function PickSpot() {
           <Probe scale={0.8} />
         </g>
       </g>
-    </Anim>
+    </>
   )
 }
 
@@ -230,7 +197,7 @@ function FiveMetreMarker() {
 
 function SceneClean() {
   return (
-    <Anim label="A probe descends, checks the ground at 5 metres, and touches down on safe ground">
+    <>
       <Ground />
       <Boulder x={170} w={60} h={28} fill={ROCK_DARK} />
       <Boulder x={640} w={74} h={34} fill={ROCK_DARK} />
@@ -244,13 +211,13 @@ function SceneClean() {
       {[-22, 0, 22].map((dx, i) => (
         <circle key={dx} className="a puff" style={{ animationDelay: '4.3s', ['--dx' as string]: `${dx}px`, animationDuration: `${1.1 + i * 0.1}s` }} cx={400} cy={346} r={9} fill={DIM} opacity={0} />
       ))}
-    </Anim>
+    </>
   )
 }
 
 function SceneBackAway() {
   return (
-    <Anim label="A boulder sits where the probe would touch, so at 5 metres it fires its thrusters and backs away">
+    <>
       <Ground />
       <Boulder x={150} w={50} h={22} fill={ROCK_DARK} />
       <Boulder x={400} w={104} h={56} />
@@ -261,7 +228,7 @@ function SceneBackAway() {
           <Probe flames />
         </g>
       </g>
-    </Anim>
+    </>
   )
 }
 
@@ -276,7 +243,7 @@ function SceneOldMap() {
           key={`${c},${r}`}
           className={missed ? 'a cell-hot' : undefined}
           style={missed ? { animationDelay: '6.9s', animationDuration: '0.4s' } : undefined}
-          x={590 + c * 36}
+          x={520 + c * 36}
           y={26 + r * 28}
           width={30}
           height={22}
@@ -287,13 +254,13 @@ function SceneOldMap() {
     }
   }
   return (
-    <Anim label="The ground map is missing a small rock, so the probe lands on it. Replayed with live detection, the rock is outlined and the probe backs away">
+    <>
       <Ground />
       <Boulder x={150} w={50} h={22} fill={ROCK_DARK} />
       <path className="a rock-flash" style={{ animationDelay: '2.9s', animationDuration: '0.9s' }} d="M376,352 l8,-22 l16,-4 l14,14 l-2,12 z" fill={ROCK} />
       <FiveMetreMarker />
       {cells}
-      <rect x={586} y={22} width={186} height={90} rx={4} fill="none" stroke={DIM} strokeWidth={1} />
+      <rect x={516} y={22} width={186} height={90} rx={4} fill="none" stroke={DIM} strokeWidth={1} />
       <path
         className="a draw"
         style={{ animationDelay: '6.2s', animationDuration: '0.6s' }}
@@ -309,54 +276,38 @@ function SceneOldMap() {
           <Probe flames />
         </g>
       </g>
-    </Anim>
+    </>
   )
 }
 
-/* ---------- layout ---------- */
+const LABELS = [
+  "A probe descends over rocky ground and its camera takes a picture",
+  "Low sunlight makes each boulder throw a long shadow, then each boulder is outlined",
+  "The ground is flattened into a map and the cells with boulders or steep slopes turn red",
+  "A target ring hops over hazard cells and settles on the safest cell, then the probe drifts over it",
+  "A probe descends, checks the ground at 5 metres, and touches down on safe ground",
+  "A boulder sits where the probe would touch, so at 5 metres it fires its thrusters and backs away",
+  "The ground map is missing a small rock, so the probe lands on it. Replayed with live detection, the rock is outlined and the probe backs away",
+]
 
-interface BeatProps {
-  id?: string
+/* ---------- the reel: seven full-screen scenes in two parts ---------- */
+
+export interface SceneDef {
+  part: 'How a probe sees' | 'Three landings'
+  title: string | null
   line: string
-  anim: ReactNode
+  label: string
+  render: () => ReactNode
+  /** which real landing the "See a real one" button opens */
+  example?: 'clean' | 'back' | 'old'
 }
 
-function Chapter({ id, line, anim }: BeatProps) {
-  return (
-    <section className="beat chapter" id={id}>
-      <h2>{line}</h2>
-      {anim}
-    </section>
-  )
-}
-
-function Scene({ id, title, line, anim, example, onOpen }: { id?: string; title: string; line: string; anim: ReactNode; example: number | null; onOpen: (seed: number) => void }) {
-  return (
-    <section className="beat beat-scene" id={id}>
-      <div className="scene-head">
-        <h2>{title}</h2>
-        <p className="dim">{line}</p>
-        {example !== null && (
-          <button type="button" className="ghost" onClick={() => onOpen(example)}>
-            See a real one <ArrowRight size={14} />
-          </button>
-        )}
-      </div>
-      {anim}
-    </section>
-  )
-}
-
-export default function Story({ examples, onOpen }: { examples: { clean: number | null; back: number | null; old: number | null }; onOpen: (seed: number) => void }) {
-  return (
-    <div className="story">
-      <Chapter id="story" line="The probe looks straight down with a camera." anim={<LookDown />} />
-      <Chapter line="Low sun makes every boulder throw a long shadow." anim={<ShadowBoulders />} />
-      <Chapter line="Rocks and steep slopes get marked on a map." anim={<HazardMap />} />
-      <Chapter line="It picks the safest spot and flies there." anim={<PickSpot />} />
-      <Scene id="scenes" title="A clean touchdown" line="Safe ground below, so it touches down." anim={<SceneClean />} example={examples.clean} onOpen={onOpen} />
-      <Scene title="Backing away for a reason" line="A boulder sits where it would land, so it backs away." anim={<SceneBackAway />} example={examples.back} onOpen={onOpen} />
-      <Scene title="When the map is out of date" line="The map missed a small rock. Live detection would not." anim={<SceneOldMap />} example={examples.old} onOpen={onOpen} />
-    </div>
-  )
-}
+export const SCENES: SceneDef[] = [
+  { part: 'How a probe sees', title: null, line: 'The probe looks straight down with a camera.', label: LABELS[0], render: () => <LookDown /> },
+  { part: 'How a probe sees', title: null, line: 'Low sun makes every boulder throw a long shadow.', label: LABELS[1], render: () => <ShadowBoulders /> },
+  { part: 'How a probe sees', title: null, line: 'Rocks and steep slopes get marked on a map.', label: LABELS[2], render: () => <HazardMap /> },
+  { part: 'How a probe sees', title: null, line: 'It picks the safest spot and flies there.', label: LABELS[3], render: () => <PickSpot /> },
+  { part: 'Three landings', title: 'A clean touchdown', line: 'Safe ground below, so it touches down.', label: LABELS[4], render: () => <g transform="translate(90 0)"><SceneClean /></g>, example: 'clean' },
+  { part: 'Three landings', title: 'Backing away for a reason', line: 'A boulder sits where it would land, so it backs away.', label: LABELS[5], render: () => <g transform="translate(90 0)"><SceneBackAway /></g>, example: 'back' },
+  { part: 'Three landings', title: 'When the map is out of date', line: 'The map missed a small rock. Live detection would not.', label: LABELS[6], render: () => <g transform="translate(90 0)"><SceneOldMap /></g>, example: 'old' },
+]

@@ -80,7 +80,6 @@ export default function DataCard({ star, picture, detector }: { star: Star; pict
           </tbody>
         </table>
       </div>
-      {!picture && <p className="note">No picture has been rendered for this landing yet.</p>}
     </div>
   )
 }

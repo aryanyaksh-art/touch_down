@@ -23,12 +23,14 @@ const HOLE_START = 11 // lens hole radius in scene units, matches the blue lens
 const HOLE_END = 34
 
 // Scroll phases, as fractions of the hero's scroll length
-const ZOOM_FROM = 0.02 // telescope zoom runs ZOOM_FROM to ZOOM_TO
-const ZOOM_TO = 0.4
-const READY_FROM = 0.42 // the galaxy can be explored between READY_FROM and READY_TO
-const READY_TO = 0.57
-const DIVE_FROM = 0.58 // then the camera dives into the galaxy core and lands on the asteroid
-const DIVE_TO = 0.94
+const ZOOM_FROM = 0.02 // telescope zoom runs ZOOM_FROM to ZOOM_TO (about two screens of scrolling)
+const ZOOM_TO = 0.5
+const READY_FROM = 0.52 // the galaxy can be explored between READY_FROM and READY_TO
+const READY_TO = 0.66
+const DIVE_FROM = 0.67 // then the camera dives into the galaxy core and lands on the asteroid
+const DIVE_TO = 0.95
+/** where the page rests when you jump to the galaxy (middle of the explore window) */
+export const HERO_REST = (READY_FROM + READY_TO) / 2
 const DIVE_ZOOM = 14
 
 function Title({ count }: { count: number }) {
@@ -42,16 +44,20 @@ function Title({ count }: { count: number }) {
   )
 }
 
-function SceneSvg({ tilt }: { tilt: MotionValue<number> }) {
+function SceneSvg({ tilt, fade }: { tilt: MotionValue<number>; fade: MotionValue<number> }) {
   const tiltStyle = useTransform(tilt, (v) => `translate(${EYE.x}px, ${EYE.y}px) rotate(${v}deg) translate(${-EYE.x}px, ${-EYE.y}px)`)
   return (
     <>
-      <TelescopeScene />
-      <motion.g style={{ transform: tiltStyle }}>
-        <g transform={`translate(${EYE.x} ${EYE.y}) rotate(${TUBE_ANGLE})`}>
-          <TelescopeTube />
-        </g>
+      {/* everything but the lens fades out in the first moments of the zoom, so only the dot swells */}
+      <motion.g style={{ opacity: fade }}>
+        <TelescopeScene />
+        <motion.g style={{ transform: tiltStyle }}>
+          <g transform={`translate(${EYE.x} ${EYE.y}) rotate(${TUBE_ANGLE})`}>
+            <TelescopeTube />
+          </g>
+        </motion.g>
       </motion.g>
+      <circle cx={FOCUS.x} cy={FOCUS.y} r={11} fill="#8da2ff" />
     </>
   )
 }
@@ -100,7 +106,7 @@ function ScrollHero({ stars, view, reduce, paused, count, onOpen, hud, highlight
   }, [])
 
   useMotionValueEvent(scrollYProgress, 'change', (v) => {
-    setBloom(v > 0.3)
+    setBloom(v > 0.36)
     setReady(v > READY_FROM && v < READY_TO)
   })
 
@@ -117,6 +123,7 @@ function ScrollHero({ stars, view, reduce, paused, count, onOpen, hud, highlight
     (v) => `translate(${FOCUS.x}px, ${FOCUS.y}px) scale(${Math.pow(MAX_ZOOM, v)}) translate(${-FOCUS.x}px, ${-FOCUS.y}px)`,
   )
   const sceneOpacity = useTransform(t, [0.96, 0.99], [1, 0])
+  const teleFade = useTransform(t, [0, 0.16], [1, 0], { clamp: true })
   const clip = useTransform(t, (v) => {
     const { w, h } = sizeRef.current
     const k = Math.max(w / VB_W, h / VB_H)
@@ -157,7 +164,7 @@ function ScrollHero({ stars, view, reduce, paused, count, onOpen, hud, highlight
       <div className="stage">
         <motion.svg className="scene" viewBox={`0 0 ${VB_W} ${VB_H}`} preserveAspectRatio="xMidYMid slice" aria-hidden="true" style={{ opacity: sceneOpacity }}>
           <motion.g style={{ transform: sceneTransform }}>
-            <SceneSvg tilt={tilt} />
+            <SceneSvg tilt={tilt} fade={teleFade} />
           </motion.g>
         </motion.svg>
         <motion.div className="galaxy-clip" style={{ clipPath: clip, opacity: galaxyOpacity }}>

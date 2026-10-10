@@ -1,17 +1,21 @@
-/* Story layout and animations. Flat shapes only. Motion: transform, opacity, stroke, fill. */
-.story { position: relative; z-index: 1; }
-.beat { min-height: 100dvh; display: grid; align-content: center; gap: 28px 56px; padding: 12vh max(20px, 6vw); max-width: 1360px; margin: 0 auto; scroll-margin-top: 0; }
-.chapter { grid-template-columns: minmax(0, 0.75fr) minmax(0, 1.25fr); align-items: center; }
-.chapter h2 { font-size: clamp(26px, 3.5vw, 50px); max-width: 15ch; }
-.beat-scene { grid-template-columns: minmax(0, 1fr); justify-items: start; }
-.beat-scene h2 { font-size: clamp(26px, 3.5vw, 48px); }
-.scene-head { display: grid; gap: 10px; max-width: 60ch; justify-items: start; }
-.anim { position: relative; width: 100%; max-width: 900px; }
-.anim svg { width: 100%; height: auto; display: block; background: rgba(10, 13, 31, 0.6); border: 1px solid var(--line); border-radius: var(--radius); }
-.anim-replay { position: absolute; right: 8px; bottom: 8px; width: 34px; height: 34px; padding: 0; background: var(--veil); border: 1px solid var(--line); border-radius: var(--radius); display: inline-flex; align-items: center; justify-content: center;
+/* The reel: one pinned full-screen stage for all seven scenes. Flat shapes only. Motion: transform, opacity, stroke, fill, clip-path. */
+.reel { position: relative; z-index: 1; }
+.reel-stage { position: sticky; top: 0; height: 100dvh; overflow: hidden; }
+.reel-scene { position: absolute; inset: 0; background: var(--sky); }
+.reel-scene > svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.reel-caption { position: absolute; left: max(24px, 6vw); top: max(76px, 12vh); max-width: min(640px, 72vw); z-index: 2; display: grid; gap: 12px; justify-items: start; pointer-events: none; }
+.reel-caption h2 { font-size: clamp(26px, 4.2vw, 60px); max-width: 16ch; }
+.reel-caption p { max-width: 44ch; }
+.reel-actions { position: absolute; right: max(20px, 3vw); bottom: 30px; z-index: 3; display: flex; gap: 10px; align-items: center; }
+.reel-part { position: absolute; left: max(24px, 6vw); bottom: 30px; z-index: 4; font-size: 12px; display: flex; gap: 12px; }
+.reel-progress { position: absolute; left: 0; right: 0; bottom: 0; height: 3px; background: var(--line); z-index: 4; }
+.reel-progress-fill { height: 100%; background: var(--ink); transform-origin: 0 50%; }
+.reel-progress .tick { position: absolute; top: 0; width: 1px; height: 100%; background: var(--sky); }
+.reel-progress .tick.part { width: 3px; }
+.anim-replay { width: 34px; height: 34px; padding: 0; background: var(--veil); border: 1px solid var(--line); border-radius: var(--radius); display: inline-flex; align-items: center; justify-content: center; color: var(--ink);
   transition: transform 160ms var(--ease-out), border-color 160ms var(--ease-out); }
 .anim-replay:active { transform: scale(0.95); }
-.ghost { background: transparent; border: 1px solid var(--line); color: var(--ink); border-radius: var(--radius); height: 34px; padding: 0 12px; display: inline-flex; align-items: center; gap: 8px; font-size: 13px;
+.ghost { background: var(--veil); border: 1px solid var(--line); color: var(--ink); border-radius: var(--radius); height: 34px; padding: 0 12px; display: inline-flex; align-items: center; gap: 8px; font-size: 13px;
   transition: transform 160ms var(--ease-out), border-color 160ms var(--ease-out); }
 .ghost:active { transform: scale(0.97); }
 @media (hover: hover) and (pointer: fine) {
@@ -81,9 +85,9 @@
 }
 
 @media (max-width: 899px) {
-  .chapter { grid-template-columns: minmax(0, 1fr); }
-  .chapter h2 { max-width: 20ch; }
-  .beat { min-height: auto; padding: 9vh 20px; }
+  .reel-caption { top: 72px; max-width: calc(100% - 40px); }
+  .reel-actions { bottom: 52px; right: 20px; }
+  .reel-part { bottom: 62px; }
 }
 @media (prefers-reduced-motion: reduce) {
   .beat-svg .a { animation: none !important; }

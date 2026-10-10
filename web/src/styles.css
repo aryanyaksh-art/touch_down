@@ -79,7 +79,7 @@ html { scrollbar-color: var(--line) var(--sky); scrollbar-width: thin; }
 }
 
 /* scroll hero: telescope, then the galaxy through its eyepiece */
-.hero-scroll { position: relative; height: 460vh; z-index: 1; }
+.hero-scroll { position: relative; height: 520vh; z-index: 1; }
 .stage { position: sticky; top: 0; height: 100dvh; overflow: hidden; }
 .surface { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
 .scene { position: absolute; inset: 0; width: 100%; height: 100%; }
@@ -305,3 +305,38 @@ footer { position: relative; z-index: 1; border-top: 1px solid var(--line); padd
   .hud-layer { transform: none; }
   .dot-label, .dot-mark { transition: none; }
 }
+
+/* results tiles */
+.results .lede { margin-top: 14px; }
+.tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 24px; margin-top: 36px; }
+.tile { position: relative; display: grid; grid-template-rows: auto auto 1fr; gap: 10px; padding-top: 16px; border-top: 1px solid var(--line); min-height: 250px; }
+.tile-value { font-family: var(--display); font-weight: 600; font-size: clamp(26px, 2.8vw, 40px); line-height: 1.1; }
+.tile-line { color: var(--dim); max-width: 24ch; }
+.tile-mini { align-self: end; }
+.mini { width: 100%; max-width: 220px; height: auto; display: block; }
+.ring-mini { max-width: 84px; }
+.tile-info { position: absolute; right: 0; top: 12px; width: 34px; height: 34px; padding: 0; border: 1px solid var(--line); background: transparent; color: var(--dim); border-radius: var(--radius); display: inline-flex; align-items: center; justify-content: center; transition: transform 160ms var(--ease-out), border-color 160ms var(--ease-out), color 160ms var(--ease-out); }
+.tile-info:active { transform: scale(0.95); }
+.tile-pop { position: absolute; left: 0; right: 0; top: 54px; z-index: 5; background: var(--sky-2); border: 1px solid var(--line); border-radius: var(--radius); padding: 12px 14px; font-size: 12.5px; line-height: 1.6; animation: pop-in 160ms var(--ease-out) both; transform-origin: top right; }
+@keyframes pop-in { from { opacity: 0; transform: scale(0.97); } }
+@media (hover: hover) and (pointer: fine) { .tile-info:hover { border-color: var(--ink); color: var(--ink); } }
+
+.tile .a { animation-duration: 0.7s; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); animation-fill-mode: both; animation-play-state: paused; transform-box: fill-box; }
+.tile.go .a { animation-play-state: running; }
+.bar-grow { animation-name: bar-grow; transform-origin: 50% 100%; }
+.ring-fill { animation-name: ring-fill; animation-duration: 1.2s; }
+.slide-near { animation-name: slide-near; animation-duration: 1s; }
+.dot-on { animation-name: dot-on; animation-duration: 0.3s; }
+@keyframes bar-grow { from { transform: scaleY(0); } }
+@keyframes ring-fill { from { stroke-dasharray: 0 1; } }
+@keyframes slide-near { from { transform: translateX(46px); opacity: 0.4; } }
+@keyframes dot-on { from { fill: #2a3057; } }
+@media (max-width: 899px) { .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 480px) { .tiles { grid-template-columns: minmax(0, 1fr); } }
+@media (prefers-reduced-motion: reduce) { .tile .a { animation: none !important; } .tile-pop { animation: none; } }
+
+/* back to the galaxy */
+.to-galaxy { position: fixed; left: max(16px, 2vw); bottom: 56px; z-index: 31; display: inline-flex; align-items: center; gap: 8px; height: 36px; padding: 0 14px; background: var(--veil); border: 1px solid var(--line); border-radius: var(--radius); font-size: 13px; opacity: 0; transform: translateY(8px); pointer-events: none; transition: opacity 220ms var(--ease-out), transform 220ms var(--ease-out), border-color 160ms var(--ease-out); }
+.to-galaxy[data-show='true'] { opacity: 1; transform: none; pointer-events: auto; }
+.to-galaxy:active { transform: scale(0.97); }
+@media (hover: hover) and (pointer: fine) { .to-galaxy:hover { border-color: var(--ink); } }
