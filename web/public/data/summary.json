@@ -6,6 +6,14 @@
   "p90": 0.9124207410581706,
   "p95": 1.2620874962522237,
   "max": 3.926875607923938,
+  "median_ci95": [
+   0.3691027609271651,
+   0.4028293612244067
+  ],
+  "p95_ci95": [
+   1.1090420600836983,
+   1.4425397869893037
+  ],
   "within_1m": {
    "k": 919,
    "n": 1000,
@@ -20,6 +28,10 @@
  "pred_vs_actual_cm": {
   "median": 3.3959856793897583,
   "p95": 7.392707140261387,
+  "median_ci95": [
+   3.242399938636102,
+   3.5546823276666726
+  ],
   "published_cm": 3.5
  },
  "nav_err_at_matchpoint_m_median": 0.08443224869258459,
@@ -189,5 +201,57 @@
    }
   }
  },
- "published_abort_probability_pre_tag": 0.06
+ "published_abort_probability_pre_tag": 0.06,
+ "detector_effect": {
+  "complete": {
+   "n": 1000,
+   "hazard_contacts_baseline": 5,
+   "hazard_contacts_with_detector": 3,
+   "avoided": 2,
+   "introduced": 0,
+   "mcnemar_p": 0.5,
+   "hazard_rate_change": -0.002,
+   "hazard_rate_change_ci95": [
+    -0.005,
+    0.0
+   ],
+   "needless_baseline": 10,
+   "needless_with_detector": 74,
+   "needless_rate_change": 0.064,
+   "needless_rate_change_ci95": [
+    0.05,
+    0.08
+   ],
+   "extra_needless_per_hazard_avoided": 32.0,
+   "extra_needless_per_hazard_avoided_ci95": [
+    11.71,
+    75.0
+   ]
+  },
+  "stale": {
+   "n": 1000,
+   "hazard_contacts_baseline": 9,
+   "hazard_contacts_with_detector": 3,
+   "avoided": 6,
+   "introduced": 0,
+   "mcnemar_p": 0.03125,
+   "hazard_rate_change": -0.006,
+   "hazard_rate_change_ci95": [
+    -0.011,
+    -0.002
+   ],
+   "needless_baseline": 7,
+   "needless_with_detector": 72,
+   "needless_rate_change": 0.065,
+   "needless_rate_change_ci95": [
+    0.051,
+    0.082
+   ],
+   "extra_needless_per_hazard_avoided": 10.833333333333334,
+   "extra_needless_per_hazard_avoided_ci95": [
+    5.489772727272728,
+    36.0
+   ]
+  }
+ }
 }
