@@ -30,6 +30,7 @@ ap.add_argument("--nn-ablation", action="store_true", help="judge each flight un
 a = ap.parse_args()
 
 os.chdir(ROOT)
+LOG = f"/tmp/mc_{os.path.basename(a.out.rstrip(os.sep))}.log"   # one log per output folder so runs can go side by side
 env = dict(os.environ, TOUCHDOWN_DATA="/tmp/data", TOUCHDOWN_BLENDER="/tmp/blender/blender")
 if (a.seeds is None) == (a.seed_list is None):
     ap.error("give exactly one of --seeds or --seed-list")
@@ -39,7 +40,7 @@ mc = subprocess.Popen([sys.executable, "-m", "touchdown.sim.montecarlo", "--out"
                       + (["--head-radius", str(a.head_radius)] if a.head_radius is not None else [])
                       + (["--p-abort", str(a.p_abort)] if a.p_abort is not None else [])
                       + (["--nn-ablation"] if a.nn_ablation else []),
-                      env=env, stdout=open("/tmp/mc.log", "w"), stderr=subprocess.STDOUT)
+                      env=env, stdout=open(LOG, "w"), stderr=subprocess.STDOUT)
 t0 = time.time()
 while mc.poll() is None:
     hrs = (time.time() - t0) / 3600
@@ -51,7 +52,7 @@ while mc.poll() is None:
         break
     time.sleep(60)
 mc.wait()
-print(open("/tmp/mc.log").read()[-1500:], flush=True)
+print(open(LOG).read()[-1500:], flush=True)
 for mod, name in (("compare_published", "summary.json"), ("sensitivity", "sensitivity.json")) + ((("ablation", "ablation.json"),) if a.nn_ablation else ()):
     r = subprocess.run([sys.executable, "-m", f"touchdown.analysis.{mod}", a.out, "--out", f"{a.out}/{name}"],
                        env=env, capture_output=True, text=True)

@@ -30,7 +30,8 @@ except ImportError:  # no torch (e.g. Windows on Arm): fall back to Blender's po
     surface_positions = None
 
 ROOT = Path(__file__).resolve().parents[2]
-SPLIT_SEED_OFFSET = {"train": 0, "val": 10_000}  # synthetic seeds never overlap between splits
+SPLIT_SEED_OFFSET = {"train": 0, "val": 10_000, "pool": 20_000}  # synthetic seeds never overlap between splits
+# "pool" = extra synthetic terrains used only as a candidate pool for hard-negative mining (touchdown/vision/mining.py)
 REAL_HALF = {"real_train": -1, "real_test": +1}   # spatial split of the real tile: west trains, east tests
 
 
@@ -76,7 +77,7 @@ def build_terrain(real: DTM, hazard_cfg: dict, name: str, seed: int | None, shap
 
 
 def generate(out_dir: Path, split: str, terrain_ids: list[int], frames: int, seed: int, device: str = "CPU",
-             samples: int = 16, min_hit: float = 0.85, shape: str = "ellipsoid") -> None:
+             samples: int = 16, min_hit: float = 0.85, shape: str = "ellipsoid", alt_max: float | None = None) -> None:
     hazard_cfg = yaml.safe_load(open(ROOT / "configs" / "hazards.yaml"))
     cam_cfg = yaml.safe_load(open(ROOT / "configs" / "camera.yaml"))
     cam = Camera(cam_cfg["render_px"][0], cam_cfg["render_px"][1], cam_cfg["hfov_deg"])
@@ -105,7 +106,7 @@ def generate(out_dir: Path, split: str, terrain_ids: list[int], frames: int, see
                 accepted = False
                 for _ in range(8):
                     pos, R, meta = sample_pose(rng, (dtm.z.shape[1] * dtm.res_m, dtm.z.shape[0] * dtm.res_m),
-                                               alt_range=(4.0, 22.0) if half is not None else (4.0, 45.0),
+                                               alt_range=(4.0, alt_max or (22.0 if half is not None else 45.0)),
                                                x_side=half or 0)
                     az, el = rng.uniform(0, 360), rng.uniform(15, 70)
                     f = r.render(cam, pos, R, sun_vector(az, el), want_pos=surface_positions is None)
@@ -138,12 +139,13 @@ def generate(out_dir: Path, split: str, terrain_ids: list[int], frames: int, see
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     ap.add_argument("--out", required=True)
-    ap.add_argument("--split", choices=["train", "val", "test", "real_train", "real_test"], required=True)
+    ap.add_argument("--split", choices=["train", "val", "pool", "test", "real_train", "real_test"], required=True)
     ap.add_argument("--shape", choices=["ellipsoid", "angular", "mixed"], default="ellipsoid")
     ap.add_argument("--terrains", nargs=2, type=int, default=[0, 1], help="terrain id range [start, stop)")
     ap.add_argument("--frames", type=int, default=100)
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--device", default="CPU")
     ap.add_argument("--samples", type=int, default=16)
+    ap.add_argument("--alt-max", type=float, default=None, help="upper altitude bound in m (default 45 synthetic, 22 real)")
     a = ap.parse_args()
-    generate(Path(a.out), a.split, list(range(*a.terrains)), a.frames, a.seed, a.device, a.samples, shape=a.shape)
+    generate(Path(a.out), a.split, list(range(*a.terrains)), a.frames, a.seed, a.device, a.samples, shape=a.shape, alt_max=a.alt_max)

@@ -34,6 +34,20 @@ def seg_loss(logits, target, weight):
     return ce + dice.mean()
 
 
+def hard_negative_loss(logits, target, top_frac: float = 0.05):
+    """Mean cross-entropy over the `top_frac` hardest safe pixels of the batch (those the model is most sure are hazards).
+
+    Plain cross-entropy averages over millions of easy pixels, so a few confident false alarms barely move it; this term
+    looks only at the worst ones. Hazard pixels are untouched, so it pushes false alarms down without rewarding the model
+    for calling everything safe."""
+    safe = target == 0
+    if not safe.any():
+        return logits.sum() * 0.0
+    nll = -F.log_softmax(logits.float(), 1)[:, 0][safe]            # -log P(safe) at each safe pixel
+    k = max(1, int(top_frac * nll.numel()))
+    return nll.topk(k).values.mean()
+
+
 @torch.no_grad()
 def evaluate(model, ds: HazardDataset, device, f_px: float, bs: int = 4) -> dict:
     model.eval()
@@ -63,7 +77,16 @@ def main():
     ap.add_argument("--train-splits", nargs="+", default=["train"], help="dataset splits to train on (e.g. train real_train)")
     ap.add_argument("--test-split", default="test", help="held-out real-terrain split to report (test, or real_test)")
     ap.add_argument("--init", default=None, help="start from this checkpoint (e.g. an earlier best.pt) instead of random weights")
+    ap.add_argument("--hard", default=None, help="hard-negative file from touchdown.vision.mining; its frames are oversampled, "
+                    "and frames of the 'pool' split are used only if listed in it")
+    ap.add_argument("--hard-weight", type=float, default=3.0, help="sampling weight of a hard frame (others 1)")
+    ap.add_argument("--hard-control", action="store_true",
+                    help="control: the same number of frames per split, chosen at random instead of by hardness")
+    ap.add_argument("--hn-lambda", type=float, default=0.0, help="weight of the hard-negative pixel loss (0 = off)")
+    ap.add_argument("--hn-frac", type=float, default=0.05, help="fraction of safe pixels per batch the hard-negative loss looks at")
+    ap.add_argument("--seed", type=int, default=0)
     a = ap.parse_args()
+    torch.manual_seed(a.seed)
     out = Path(a.out)
     out.mkdir(parents=True, exist_ok=True)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -71,6 +94,20 @@ def main():
     f_px = (cam["render_px"][0] / 2) / np.tan(np.radians(cam["hfov_deg"]) / 2)
 
     train = HazardDataset(a.data, a.train_splits, train=True, max_items=a.max_items)
+    sample_w = None
+    if a.hard:
+        hf = json.load(open(a.hard))
+        hard = list(hf["hard"])
+        if a.hard_control:
+            from touchdown.vision.mining import random_control
+            scores = json.load(open(a.hard + ".scores.json"))
+            hard = random_control(scores, hard, a.seed)
+        hard_set = set(hard)
+        train.rows = [r for r in train.rows if r["split"] != "pool" or r["frame"] in hard_set]
+        sample_w = [a.hard_weight if r["frame"] in hard_set else 1.0 for r in train.rows]
+        n_pool = sum(r["split"] == "pool" for r in train.rows)
+        print(f"hard frames {len(hard_set)} ({'RANDOM control' if a.hard_control else 'mined'}), "
+              f"training frames {len(train.rows)} (pool: {n_pool}), oversampling x{a.hard_weight}", flush=True)
     val = HazardDataset(a.data, "val", max_items=a.max_items)
     freq = train.class_frequencies()
     weight = torch.tensor(1.0 / np.sqrt(freq), dtype=torch.float32, device=device)
@@ -84,7 +121,11 @@ def main():
         print("initialised from", a.init, flush=True)
     print("params", n_params(model), "device", device, flush=True)
     opt = torch.optim.AdamW(model.parameters(), lr=a.lr, weight_decay=1e-4)
-    dl = DataLoader(train, batch_size=a.bs, shuffle=True, num_workers=2, drop_last=True)
+    if sample_w is not None:   # one pass = len(train) draws, hard frames more likely
+        sampler = torch.utils.data.WeightedRandomSampler(sample_w, num_samples=len(train), replacement=True)
+        dl = DataLoader(train, batch_size=a.bs, sampler=sampler, num_workers=2, drop_last=True)
+    else:
+        dl = DataLoader(train, batch_size=a.bs, shuffle=True, num_workers=2, drop_last=True)
     sched = torch.optim.lr_scheduler.OneCycleLR(opt, max_lr=a.lr, total_steps=a.epochs * len(dl))
     scaler = torch.amp.GradScaler(enabled=device.type == "cuda")
     history, best = [], -1.0
@@ -94,7 +135,10 @@ def main():
         for x, y, _ in dl:
             x, y = x.to(device), y.to(device)
             with torch.autocast(device.type, enabled=device.type == "cuda"):
-                loss = seg_loss(model(x), y, weight)
+                logits = model(x)
+                loss = seg_loss(logits, y, weight)
+                if a.hn_lambda > 0:
+                    loss = loss + a.hn_lambda * hard_negative_loss(logits, y, a.hn_frac)
             opt.zero_grad(set_to_none=True)
             scaler.scale(loss).backward()
             scaler.step(opt)
