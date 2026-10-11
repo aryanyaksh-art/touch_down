@@ -13,6 +13,9 @@ export default function ZoomPan({ children }: { children: ReactNode }) {
   const y = useMotionValue(0)
   const transform = useMotionTemplate`translate(${x}px, ${y}px) scale(${scale})`
   const drag = useRef<{ id: number; sx: number; sy: number; ox: number; oy: number } | null>(null)
+  // two-finger pinch on touch screens
+  const touches = useRef(new Map<number, { x: number; y: number }>())
+  const pinch = useRef<{ dist: number; scale: number } | null>(null)
 
   const clamp = (nx: number, ny: number, s: number) => {
     const r = box.current!.getBoundingClientRect()
@@ -57,20 +60,47 @@ export default function ZoomPan({ children }: { children: ReactNode }) {
       ref={box}
       onDoubleClick={reset}
       onPointerDown={(e) => {
-        if (scale.get() <= 1 || (e.target as HTMLElement).closest('button')) return
+        if ((e.target as HTMLElement).closest('button')) return
+        if (e.pointerType === 'touch') {
+          touches.current.set(e.pointerId, { x: e.clientX, y: e.clientY })
+          if (touches.current.size === 2) {
+            const [a, b] = [...touches.current.values()]
+            pinch.current = { dist: Math.hypot(a.x - b.x, a.y - b.y), scale: scale.get() }
+            drag.current = null
+            return
+          }
+        }
+        if (scale.get() <= 1) return
         if (drag.current) return
         ;(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId)
         drag.current = { id: e.pointerId, sx: e.clientX, sy: e.clientY, ox: x.get(), oy: y.get() }
       }}
       onPointerMove={(e) => {
+        if (e.pointerType === 'touch' && touches.current.has(e.pointerId)) {
+          touches.current.set(e.pointerId, { x: e.clientX, y: e.clientY })
+          if (pinch.current && touches.current.size === 2) {
+            const [a, b] = [...touches.current.values()]
+            const r = box.current!.getBoundingClientRect()
+            zoomTo(pinch.current.scale * (Math.hypot(a.x - b.x, a.y - b.y) / pinch.current.dist), (a.x + b.x) / 2 - r.left - r.width / 2, (a.y + b.y) / 2 - r.top - r.height / 2)
+            return
+          }
+        }
         const d = drag.current
         if (!d || d.id !== e.pointerId) return
         const [nx, ny] = clamp(d.ox + e.clientX - d.sx, d.oy + e.clientY - d.sy, scale.get())
         x.set(nx)
         y.set(ny)
       }}
-      onPointerUp={() => (drag.current = null)}
-      onPointerCancel={() => (drag.current = null)}
+      onPointerUp={(e) => {
+        touches.current.delete(e.pointerId)
+        if (touches.current.size < 2) pinch.current = null
+        drag.current = null
+      }}
+      onPointerCancel={(e) => {
+        touches.current.delete(e.pointerId)
+        pinch.current = null
+        drag.current = null
+      }}
     >
       <motion.div className="zoompan-layer" style={{ transform }}>
         {children}

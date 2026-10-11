@@ -340,3 +340,26 @@ footer { position: relative; z-index: 1; border-top: 1px solid var(--line); padd
 .to-galaxy[data-show='true'] { opacity: 1; transform: none; pointer-events: auto; }
 .to-galaxy:active { transform: scale(0.97); }
 @media (hover: hover) and (pointer: fine) { .to-galaxy:hover { border-color: var(--ink); } }
+
+/* phones and touch screens */
+@media (max-width: 899px) {
+  .hud { gap: 10px; padding: 0 16px 16px; }
+  .hud-controls { justify-content: flex-start; }
+  .picker { flex-wrap: wrap; width: 100%; padding: 10px 12px; gap: 8px 12px; }
+  .picker label { flex: 0 0 auto; }
+  .slider { flex: 1 1 140px; width: auto; min-width: 0; }
+  .seed-box { flex: 0 0 84px; }
+  .to-galaxy { bottom: 120px; top: auto; left: auto; right: 16px; width: 44px; padding: 0; justify-content: center; font-size: 0; gap: 0; }
+  .panel-title { flex-wrap: wrap; }
+  .overlay-inner { padding-top: 68px; }
+  .tour-bar { padding: 12px 16px; }
+  .compare { gap: 8px; }
+}
+@media (pointer: coarse) {
+  .seg button, .primary, .ghost, .anim-replay, .tile-info, .zoom-tools button, .overlay-close, .controls button, .to-galaxy { min-height: 44px; min-width: 44px; }
+  .zoom-tools button { height: 44px; }
+  .anim-replay, .tile-info { width: 44px; height: 44px; }
+  input[type='number'], input[type='range'] { font-size: 16px; }
+  .slider { height: 32px; }
+  .controls input[type='range'], .compare input[type='range'] { height: 32px; }
+}

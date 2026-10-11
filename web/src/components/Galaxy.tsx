@@ -307,8 +307,8 @@ export default function Galaxy({ stars, view, interactive, paused, reduce, bloom
       squash = shape.squash
       T = Math.cos(tilt)
       U = Math.sin(tilt)
-      S = portrait ? W * 0.5 : Math.min(W * 0.44, H * 0.8)
-      cyShift = portrait ? -H * 0.14 : 0
+      S = portrait ? W * 0.4 : Math.min(W * 0.44, H * 0.8)
+      cyShift = portrait ? -H * 0.1 : 0
       bg = drawBackground(Math.min(2400, Math.round(S * 2 * PLANE * dpr)), dpr)
       draw()
     }

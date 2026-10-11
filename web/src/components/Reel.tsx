@@ -28,7 +28,7 @@ export function reelIndexAt(el: HTMLElement, y: number): number {
 function SkyDots() {
   const dots = useMemo(() => {
     const rng = mulberry32(11)
-    return Array.from({ length: 90 }, () => ({ x: rng() * 800, y: rng() * 330, r: 0.5 + rng() * 1.2, c: STAR_COLORS[Math.floor(rng() * STAR_COLORS.length)], o: 0.4 + rng() * 0.6 }))
+    return Array.from({ length: 170 }, () => ({ x: -100 + rng() * 1000, y: -300 + rng() * 630, r: 0.5 + rng() * 1.2, c: STAR_COLORS[Math.floor(rng() * STAR_COLORS.length)], o: 0.4 + rng() * 0.6 }))
   }, [])
   return (
     <g aria-hidden="true">
@@ -53,7 +53,7 @@ function SceneLayer({ index, narrow, reduce, onExample }: { index: number; narro
     <>
       <svg
         key={run}
-        viewBox="0 0 800 450"
+        viewBox={narrow ? scene.narrow : '0 0 800 450'}
         preserveAspectRatio={narrow ? 'xMidYMax meet' : 'xMidYMax slice'}
         className={go ? 'beat-svg go' : 'beat-svg'}
         role="img"

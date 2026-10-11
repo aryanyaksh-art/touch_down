@@ -30,7 +30,19 @@ export default function CameraView({ replay, k, showLabels, showFeatures, useNN 
 
   const onMove = (e: React.PointerEvent<HTMLDivElement>) => {
     const img = imgRef.current
-    if (!img || e.buttons) return setHover(null)
+    // on touch screens the readout comes from a tap (see onPointerUp), not from moving
+    if (!img || e.pointerType === 'touch' || e.buttons) return setHover(null)
+    const r = img.getBoundingClientRect()
+    const u = ((e.clientX - r.left) / r.width) * 320
+    const v = ((e.clientY - r.top) / r.height) * 240
+    if (u < 0 || v < 0 || u >= 320 || v >= 240) return setHover(null)
+    const box = e.currentTarget.getBoundingClientRect()
+    setHover({ x: e.clientX - box.left, y: e.clientY - box.top, truth: classify(truthPx, u, v), found: hasNN ? classify(foundPx, u, v) : null })
+  }
+
+  const onTap = (e: React.PointerEvent<HTMLDivElement>) => {
+    const img = imgRef.current
+    if (!img) return
     const r = img.getBoundingClientRect()
     const u = ((e.clientX - r.left) / r.width) * 320
     const v = ((e.clientY - r.top) / r.height) * 240
@@ -47,7 +59,7 @@ export default function CameraView({ replay, k, showLabels, showFeatures, useNN 
           {showLabels ? (analysed ? 'detector output' : 'ground-truth hazard labels') : 'raw frame'}
         </span>
       </div>
-      <div className="frame" onPointerMove={onMove} onPointerLeave={() => setHover(null)}>
+      <div className="frame" onPointerMove={onMove} onPointerUp={(e) => e.pointerType === 'touch' && onTap(e)} onPointerLeave={() => setHover(null)}>
         <ZoomPan>
           <img ref={imgRef} src={dataUrl(`${base}/f${pad(k)}.webp`)} alt="Navigation camera frame" draggable={false} />
           {overlay && (

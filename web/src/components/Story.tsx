@@ -298,16 +298,18 @@ export interface SceneDef {
   line: string
   label: string
   render: () => ReactNode
+  /** viewBox to use on narrow (portrait) screens, so the action fills the width */
+  narrow: string
   /** which real landing the "See a real one" button opens */
   example?: 'clean' | 'back' | 'old'
 }
 
 export const SCENES: SceneDef[] = [
-  { part: 'How a probe sees', title: null, line: 'The probe looks straight down with a camera.', label: LABELS[0], render: () => <LookDown /> },
-  { part: 'How a probe sees', title: null, line: 'Low sun makes every boulder throw a long shadow.', label: LABELS[1], render: () => <ShadowBoulders /> },
-  { part: 'How a probe sees', title: null, line: 'Rocks and steep slopes get marked on a map.', label: LABELS[2], render: () => <HazardMap /> },
-  { part: 'How a probe sees', title: null, line: 'It picks the safest spot and flies there.', label: LABELS[3], render: () => <PickSpot /> },
-  { part: 'Three landings', title: 'A clean touchdown', line: 'Safe ground below, so it touches down.', label: LABELS[4], render: () => <g transform="translate(90 0)"><SceneClean /></g>, example: 'clean' },
-  { part: 'Three landings', title: 'Backing away for a reason', line: 'A boulder sits where it would land, so it backs away.', label: LABELS[5], render: () => <g transform="translate(90 0)"><SceneBackAway /></g>, example: 'back' },
-  { part: 'Three landings', title: 'When the map is out of date', line: 'The map missed a small rock. Live detection would not.', label: LABELS[6], render: () => <g transform="translate(90 0)"><SceneOldMap /></g>, example: 'old' },
+  { part: 'How a probe sees', title: null, line: 'The probe looks straight down with a camera.', label: LABELS[0], narrow: '30 -230 500 700', render: () => <LookDown /> },
+  { part: 'How a probe sees', title: null, line: 'Low sun makes every boulder throw a long shadow.', label: LABELS[1], narrow: '180 -230 560 700', render: () => <ShadowBoulders /> },
+  { part: 'How a probe sees', title: null, line: 'Rocks and steep slopes get marked on a map.', label: LABELS[2], narrow: '190 -200 600 700', render: () => <HazardMap /> },
+  { part: 'How a probe sees', title: null, line: 'It picks the safest spot and flies there.', label: LABELS[3], narrow: '190 -200 600 700', render: () => <PickSpot /> },
+  { part: 'Three landings', title: 'A clean touchdown', line: 'Safe ground below, so it touches down.', label: LABELS[4], narrow: '250 -250 300 700', render: () => <g transform="translate(90 0)"><SceneClean /></g>, example: 'clean' },
+  { part: 'Three landings', title: 'Backing away for a reason', line: 'A boulder sits where it would land, so it backs away.', label: LABELS[5], narrow: '250 -250 300 700', render: () => <g transform="translate(90 0)"><SceneBackAway /></g>, example: 'back' },
+  { part: 'Three landings', title: 'When the map is out of date', line: 'The map missed a small rock. Live detection would not.', label: LABELS[6], narrow: '250 -250 560 700', render: () => <g transform="translate(90 0)"><SceneOldMap /></g>, example: 'old' },
 ]

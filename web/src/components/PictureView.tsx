@@ -20,7 +20,19 @@ export default function PictureView({ seed, detector }: { seed: number; detector
 
   const onMove = (e: React.PointerEvent<HTMLDivElement>) => {
     const img = imgRef.current
-    if (!img || e.buttons) return setHover(null)
+    // on touch screens the readout comes from a tap (see onPointerUp), not from moving
+    if (!img || e.pointerType === 'touch' || e.buttons) return setHover(null)
+    const r = img.getBoundingClientRect()
+    const u = ((e.clientX - r.left) / r.width) * 320
+    const v = ((e.clientY - r.top) / r.height) * 240
+    if (u < 0 || v < 0 || u >= 320 || v >= 240) return setHover(null)
+    const box = e.currentTarget.getBoundingClientRect()
+    setHover({ x: e.clientX - box.left, y: e.clientY - box.top, truth: classify(truthPx, u, v), found: detector ? classify(foundPx, u, v) : null })
+  }
+
+  const onTap = (e: React.PointerEvent<HTMLDivElement>) => {
+    const img = imgRef.current
+    if (!img) return
     const r = img.getBoundingClientRect()
     const u = ((e.clientX - r.left) / r.width) * 320
     const v = ((e.clientY - r.top) / r.height) * 240
@@ -39,7 +51,7 @@ export default function PictureView({ seed, detector }: { seed: number; detector
           {detector && <button type="button" className={layer === 'detector' ? 'on' : ''} onClick={() => setLayer('detector')}>detector</button>}
         </span>
       </div>
-      <div className="frame" onPointerMove={onMove} onPointerLeave={() => setHover(null)}>
+      <div className="frame" onPointerMove={onMove} onPointerUp={(e) => e.pointerType === 'touch' && onTap(e)} onPointerLeave={() => setHover(null)}>
         <ZoomPan>
           <img ref={imgRef} src={dataUrl(`${base}.webp`)} alt={`What the probe saw above landing ${seed} at 5 metres`} draggable={false} />
           {overlay && (
