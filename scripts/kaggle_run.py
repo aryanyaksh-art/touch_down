@@ -27,6 +27,7 @@ ap.add_argument("--aim-mode", default="random_safe", choices=["best", "random_sa
 ap.add_argument("--head-radius", type=float, default=None)
 ap.add_argument("--p-abort", type=float, default=None)
 ap.add_argument("--nn-ablation", action="store_true", help="judge each flight under the detector false-alarm variants")
+ap.add_argument("--wide", action="store_true", help="EXTENSION: start at Checkpoint (125 m) over the wide terrain (needs scripts/build_wide_dtm.py first)")
 a = ap.parse_args()
 
 os.chdir(ROOT)
@@ -39,7 +40,8 @@ seed_args = ["--seed-list"] + [str(x) for x in a.seed_list] if a.seed_list is no
 mc = subprocess.Popen([sys.executable, "-m", "touchdown.sim.montecarlo", "--out", a.out] + seed_args + ["--device", "GPU", "--checkpoint", a.ckpt, "--aim-mode", a.aim_mode]
                       + (["--head-radius", str(a.head_radius)] if a.head_radius is not None else [])
                       + (["--p-abort", str(a.p_abort)] if a.p_abort is not None else [])
-                      + (["--nn-ablation"] if a.nn_ablation else []),
+                      + (["--nn-ablation"] if a.nn_ablation else [])
+                      + (["--wide"] if a.wide else []),
                       env=env, stdout=open(LOG, "w"), stderr=subprocess.STDOUT)
 t0 = time.time()
 while mc.poll() is None:
