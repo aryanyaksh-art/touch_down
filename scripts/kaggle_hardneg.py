@@ -66,8 +66,33 @@ def run_parallel(jobs, what):
     log(f"END   {what}")
 
 
+def smoke():
+    """A few minutes on a tiny dataset through every code path (mining, hard/control/pixel training, scoring), so a bug in
+    the torch code fails now and not after an hour of rendering."""
+    global DS
+    real_ds, DS = DS, "/tmp/ds_smoke"
+    run_parallel([("smoke render", ["sh", "-c", " && ".join(" ".join(c) for c in [
+        gen("train", (0, 2), 6, "mixed"), gen("val", (0, 1), 6, "mixed"), gen("pool", (0, 2), 6, "mixed", 22),
+        gen("real_train", (0, 1), 8), gen("real_test", (0, 1), 8)])], {}, f"{OUT}/smoke_render.log")], "smoke: render tiny dataset")
+    sm = f"{OUT}/smoke"
+    os.makedirs(sm, exist_ok=True)
+    run_parallel([("smoke mine", [PY, "-m", "touchdown.vision.mining", "--data", DS, "--ckpt", V2, "--splits", "train",
+                                  "real_train", "pool", "--top-frac", "0.5", "--out", f"{sm}/hard.json"], {}, f"{sm}/mine.log")],
+                 "smoke: mine")
+    base = [PY, "-m", "touchdown.vision.train", "--data", DS, "--epochs", "1", "--bs", "2", "--init", V2, "--train-splits",
+            "train", "real_train", "pool", "--test-split", "real_test", "--hard", f"{sm}/hard.json"]
+    for name, extra in (("ctrl", ["--hard-control"]), ("pixel", ["--hn-lambda", "1.0"])):
+        run_parallel([(f"smoke train {name}", base + ["--out", f"{sm}/{name}"] + extra, {}, f"{sm}/train_{name}.log")],
+                     f"smoke: train {name}")
+    run_parallel([("smoke eval", [PY, "-m", "touchdown.vision.evaluate", "--data", DS, "--split", "real_test", "--ckpt",
+                                  f"{sm}/pixel/best.pt", "--out", f"{sm}/eval.json"], {}, f"{sm}/eval.md")], "smoke: score")
+    log("SMOKE_OK")
+    DS = real_ds
+
+
 def main():
     assert os.path.getsize(V2) == 17520863, "join the v2 checkpoint first (notebook cell 2)"
+    smoke()
     # 1. render: two streams at once, balanced by frame count (the dataset recipe is the same as detector v2's)
     run_parallel([
         ("stream A", ["sh", "-c", " && ".join(" ".join(c) for c in [
