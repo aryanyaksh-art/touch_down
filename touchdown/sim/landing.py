@@ -6,6 +6,7 @@ One flight, several verdicts: the back-away decision does not change the traject
 from dataclasses import dataclass, field
 
 import numpy as np
+from scipy import ndimage
 
 from touchdown.dataset.labels import pixel_labels
 from touchdown.gnc.backaway import clearance_map, hazard_probability, predict_contact
@@ -33,6 +34,7 @@ class SimConfig:
     head_radius_m: float = 0.16             # CONFIRMED: TAGSAM outer diameter 32 cm (Walsh et al. 2022, SSR 218:20). Our first 1,000-landing run used 0.30 (conservative)
     p_abort: float = 0.01                   # Norman et al. 2022: threshold set for >99% spacecraft safety, so about 0.01; the numeric value is not published. First run used 0.10
     nn_max_alt_m: float = 22.0              # NN frames used for the live hazard map below this altitude
+    nn_variants: tuple = ()                 # EXTENSION ablation: extra decision rules judged on the same flights, see NN_ABLATION
     # --- dispersions (1-sigma); ASSUMPTIONS, see docs/references.md
     start_offset_m: float = 1.5             # horizontal offset of the start point from the nominal approach
     start_vel_mps: float = 0.003            # velocity error from the previous burn
@@ -46,6 +48,27 @@ class SimConfig:
     sun_el_range: tuple = (20.0, 65.0)
     sigma_a_filter: float = 2e-6
     nft: NFTConfig = field(default_factory=NFTConfig)
+
+
+# False-alarm ablation (extension). The detector's evidence is summed per map cell; the shipped rule flags a cell when
+# the sum is above zero, so weak but repeated evidence is enough. Each variant (name, min_evidence, min_blob_cells)
+# demands more: a higher evidence total, and/or a flagged region of at least min_blob_cells connected cells (5 cm cells; a
+# 21 cm boulder spans about 16). Every variant is judged on the same frames, so differences are paired.
+NN_ABLATION = (
+    ("L0", 0.0, 0),      # the shipped rule; must reproduce `complete_nn` / `stale_nn`
+    ("L1", 1.0, 0), ("L2", 2.0, 0), ("L4", 4.0, 0), ("L8", 8.0, 0), ("L16", 16.0, 0),
+    ("L0_b9", 0.0, 9), ("L2_b9", 2.0, 9), ("L4_b9", 4.0, 9), ("L2_b25", 2.0, 25),
+)
+
+
+def nn_variant_mask(L: np.ndarray, min_evidence: float = 0.0, min_blob_cells: int = 0) -> np.ndarray:
+    """Hazard mask from the fused detector evidence grid under one ablation rule."""
+    m = L > min_evidence
+    if min_blob_cells > 1 and m.any():
+        lab, n = ndimage.label(m, structure=np.ones((3, 3)))
+        sizes = ndimage.sum(m, lab, index=np.arange(1, n + 1))
+        m = np.r_[False, sizes >= min_blob_cells][lab]
+    return m
 
 
 def _rot(axis, deg):
@@ -186,6 +209,15 @@ def fly(site: SiteAssets, renderer, cam: Camera, cfg: SimConfig, seed: int, net=
             verdicts[f"{name}_nn"] = hazard_probability(clr, res, cp.xy, cp.cov_xy, cfg.head_radius_m)
     result["p_hazard"] = verdicts
     result["abort"] = {k: bool(v > cfg.p_abort) for k, v in verdicts.items()}
+    if live is not None and cfg.nn_variants:
+        variants = {}
+        for name, min_ev, blob in cfg.nn_variants:
+            m = nn_variant_mask(live.L, min_ev, blob)
+            p = {}
+            for pname, prior in (("complete", site.mask_prior_complete), ("stale", site.mask_prior_stale)):
+                p[pname] = float(hazard_probability(clearance_map(prior | m, res), res, cp.xy, cp.cov_xy, cfg.head_radius_m))
+            variants[name] = {"p_hazard": p, "abort": {k: bool(v > cfg.p_abort) for k, v in p.items()}, "flagged_cells": int(m.sum())}
+        result["nn_variants"] = variants
 
     # --- what would actually have happened if we had gone to contact
     xc, vc = x_true.copy(), v_true.copy()

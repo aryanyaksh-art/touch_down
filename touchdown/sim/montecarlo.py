@@ -14,12 +14,12 @@ from touchdown.bennu.paths import data_dir
 from touchdown.render.camera import Camera
 from touchdown.render.client import BlenderRenderer
 from touchdown.sim.assets import load_assets
-from touchdown.sim.landing import SimConfig, fly
+from touchdown.sim.landing import NN_ABLATION, SimConfig, fly
 
 
 def run(out: Path, seeds: range, device: str = "CPU", checkpoint: str | None = None, samples: int = 16,
         aim_mode: str = "best", head_radius_m: float | None = None, p_abort: float | None = None,
-        corr_factor: float | None = None, sigma_a: float | None = None) -> None:
+        corr_factor: float | None = None, sigma_a: float | None = None, nn_ablation: bool = False) -> None:
     out.mkdir(parents=True, exist_ok=True)
     todo = [s for s in seeds if not (out / f"landing_{s:05d}.json").exists()]
     print(f"{len(todo)} of {len(seeds)} landings to run", flush=True)
@@ -40,6 +40,8 @@ def run(out: Path, seeds: range, device: str = "CPU", checkpoint: str | None = N
         cfg.nft.corr_factor = corr_factor
     if sigma_a is not None:
         cfg.sigma_a_filter = sigma_a
+    if nn_ablation:                      # false-alarm ablation, see landing.NN_ABLATION and analysis/ablation.py
+        cfg.nn_variants = NN_ABLATION
     cam = Camera(640, 480, 44.0)
     with BlenderRenderer(path, samples=samples, device=device) as r:
         for s in todo:
@@ -67,6 +69,7 @@ if __name__ == "__main__":
     ap.add_argument("--p-abort", type=float, default=None, help="hazard-probability threshold; default is the SimConfig value (0.01)")
     ap.add_argument("--corr-factor", type=float, default=None, help="NFT measurement-noise inflation for correlated errors (default 1.5)")
     ap.add_argument("--sigma-a", type=float, default=None, help="filter process noise, unmodelled acceleration [m/s^2] (default 2e-6)")
+    ap.add_argument("--nn-ablation", action="store_true", help="also judge each flight under the detector false-alarm variants (needs --checkpoint)")
     a = ap.parse_args()
     run(Path(a.out), range(*a.seeds), a.device, a.checkpoint, a.samples, a.aim_mode, a.head_radius, a.p_abort,
-        a.corr_factor, a.sigma_a)
+        a.corr_factor, a.sigma_a, a.nn_ablation)

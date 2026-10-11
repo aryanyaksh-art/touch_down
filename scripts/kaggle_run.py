@@ -25,6 +25,7 @@ ap.add_argument("--max-hours", type=float, default=8.5)
 ap.add_argument("--aim-mode", default="random_safe", choices=["best", "random_safe"])
 ap.add_argument("--head-radius", type=float, default=None)
 ap.add_argument("--p-abort", type=float, default=None)
+ap.add_argument("--nn-ablation", action="store_true", help="judge each flight under the detector false-alarm variants")
 a = ap.parse_args()
 
 os.chdir(ROOT)
@@ -33,7 +34,8 @@ n_total = a.seeds[1] - a.seeds[0]
 mc = subprocess.Popen([sys.executable, "-m", "touchdown.sim.montecarlo", "--out", a.out, "--seeds", str(a.seeds[0]),
                        str(a.seeds[1]), "--device", "GPU", "--checkpoint", a.ckpt, "--aim-mode", a.aim_mode]
                       + (["--head-radius", str(a.head_radius)] if a.head_radius is not None else [])
-                      + (["--p-abort", str(a.p_abort)] if a.p_abort is not None else []),
+                      + (["--p-abort", str(a.p_abort)] if a.p_abort is not None else [])
+                      + (["--nn-ablation"] if a.nn_ablation else []),
                       env=env, stdout=open("/tmp/mc.log", "w"), stderr=subprocess.STDOUT)
 t0 = time.time()
 while mc.poll() is None:
@@ -47,7 +49,7 @@ while mc.poll() is None:
     time.sleep(60)
 mc.wait()
 print(open("/tmp/mc.log").read()[-1500:], flush=True)
-for mod, name in (("compare_published", "summary.json"), ("sensitivity", "sensitivity.json")):
+for mod, name in (("compare_published", "summary.json"), ("sensitivity", "sensitivity.json")) + ((("ablation", "ablation.json"),) if a.nn_ablation else ()):
     r = subprocess.run([sys.executable, "-m", f"touchdown.analysis.{mod}", a.out, "--out", f"{a.out}/{name}"],
                        env=env, capture_output=True, text=True)
     print(r.stdout[-6000:], r.stderr[-1500:], flush=True)
