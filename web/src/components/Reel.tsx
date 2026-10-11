@@ -135,7 +135,7 @@ export default function Reel({ narrow, onExample }: { narrow: boolean; onExample
             initial="enter"
             animate="center"
             exit="exit"
-            transition={{ duration: reduce ? 0.2 : 0.75, ease: EASE_IN_OUT }}
+            transition={{ duration: reduce ? 0.45 : 0.75, ease: EASE_IN_OUT }}
           >
             <SceneLayer index={idx} narrow={narrow} reduce={reduce} onExample={onExample} />
           </motion.div>

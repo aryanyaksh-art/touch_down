@@ -333,7 +333,8 @@ footer { position: relative; z-index: 1; border-top: 1px solid var(--line); padd
 @keyframes dot-on { from { fill: #2a3057; } }
 @media (max-width: 899px) { .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 480px) { .tiles { grid-template-columns: minmax(0, 1fr); } }
-@media (prefers-reduced-motion: reduce) { .tile .a { animation: none !important; } .tile-pop { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .tile .a { animation-name: tile-fade !important; animation-duration: 0.8s !important; animation-timing-function: ease !important; } .tile-pop { animation-name: tile-fade; } }
+@keyframes tile-fade { from { opacity: 0; } }
 
 /* back to the galaxy */
 .to-galaxy { position: fixed; left: max(16px, 2vw); bottom: 56px; z-index: 31; display: inline-flex; align-items: center; gap: 8px; height: 36px; padding: 0 14px; background: var(--veil); border: 1px solid var(--line); border-radius: var(--radius); font-size: 13px; opacity: 0; transform: translateY(8px); pointer-events: none; transition: opacity 220ms var(--ease-out), transform 220ms var(--ease-out), border-color 160ms var(--ease-out); }
