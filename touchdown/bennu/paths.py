@@ -15,3 +15,5 @@ def data_dir() -> Path:
 
 
 SITE_OBJ = "l_00050mm_alt_ptm_5595n04217_v020.obj"  # NASA SVS Nightingale 5 cm tile, coordinates in km
+
+GLOBAL_OBJ = "g_00880mm_alt_ptm_0000n00000_v020.obj"  # NASA SVS global model, 88 cm, coordinates in km

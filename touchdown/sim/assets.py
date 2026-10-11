@@ -29,6 +29,7 @@ class SiteAssets:
     clr_stale: np.ndarray
     target_xy: np.ndarray        # chosen aim point: the point of maximum clearance from any hazard
     target_clearance_m: float
+    wide_known_z: np.ndarray | None = None   # onboard model of the wide terrain (descent from Checkpoint); None = tile only
 
 
 def stale_mask(hm: HazardMap, min_boulder_m: float) -> np.ndarray:
@@ -69,6 +70,17 @@ def random_target(clearance: np.ndarray, res_m: float, rng: np.random.Generator,
 
 def load_assets(dtm_path: str | Path, stale_min_boulder_m: float = 0.8) -> SiteAssets:
     return assets_from_dtm(DTM.load(dtm_path), stale_min_boulder_m)
+
+
+def load_wide_assets(path: str | Path, stale_min_boulder_m: float = 0.8, margin_m: float = 6.0) -> SiteAssets:
+    """Assets for descents that start at Checkpoint: hazards, clearance and aim points come from the real 5 cm tile (the
+    only place with a hazard map); the camera sees the wide truth; NFT's high-altitude level uses the wide onboard model."""
+    from touchdown.bennu.widedtm import WideDTM
+    w = WideDTM.load(path)
+    a = assets_from_dtm(w.tile_dtm(), stale_min_boulder_m, margin_m)
+    a.truth = HeightField(w.z, w.res_m)
+    a.wide_known_z = w.z_known
+    return a
 
 
 def assets_from_dtm(dtm: DTM, stale_min_boulder_m: float = 0.8, margin_m: float = 6.0) -> SiteAssets:

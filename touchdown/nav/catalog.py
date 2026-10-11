@@ -52,8 +52,10 @@ class OnboardModel:
         return self.levels[-1]
 
 
-def make_onboard_model(z_truth: np.ndarray, res_truth: float, seed: int = 1) -> "OnboardModel":
-    coarse = make_onboard_dtm(z_truth, res_truth, factor=5, noise_std=0.03, seed=seed)
+def make_onboard_model(z_truth: np.ndarray, res_truth: float, seed: int = 1, coarse_z: np.ndarray | None = None) -> "OnboardModel":
+    """`coarse_z` (same grid spacing as `z_truth`) is the ground-built wide model for the high-altitude level when the
+    descent starts above the tile (see touchdown/bennu/widedtm.py); the fine level always comes from the tile."""
+    coarse = make_onboard_dtm(z_truth if coarse_z is None else coarse_z, res_truth, factor=5, noise_std=0.03, seed=seed)
     fine = make_onboard_dtm(z_truth, res_truth, factor=1, noise_std=0.02, seed=seed + 1)
     return OnboardModel([Level(fine, build_catalog(fine, spacing_m=0.5, window_m=1.0), 22.0),
                          Level(coarse, build_catalog(coarse), 1e9)])

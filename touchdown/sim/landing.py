@@ -11,7 +11,7 @@ from scipy import ndimage
 from touchdown.dataset.labels import pixel_labels
 from touchdown.gnc.backaway import clearance_map, hazard_probability, predict_contact
 from touchdown.gnc.dynamics import SiteFrame
-from touchdown.gnc.targeting import solve_ballistic_to_target
+from touchdown.gnc.targeting import solve_ballistic_to_target, solve_waypoint
 from touchdown.nav.catalog import make_onboard_model
 from touchdown.nav.ekf import NavEKF
 from touchdown.nav.nft import NFTConfig, nft_update
@@ -26,6 +26,9 @@ class SimConfig:
     aim_margin_m: float = 10.0              # random_safe aim points stay this far from the tile edge (camera footprint)
     start_alt_m: float = 45.0
     matchpoint_time_s: float = 60.0         # burn after NFT has settled; real Matchpoint is at ~54 m (tile-limited here)
+    waypoint_alt_m: float = 0.0             # > 0 turns on the Checkpoint phase (needs the wide terrain): coast from start_alt_m to a
+                                            # point above the aim at this altitude (Matchpoint, 54 m), reached at matchpoint_time_s
+                                            # (NASA SVS: Matchpoint about 11 minutes after the Checkpoint burn, so 660 s)
     dt_high_s: float = 20.0
     dt_low_s: float = 10.0
     low_alt_m: float = 12.0
@@ -113,7 +116,7 @@ def fly(site: SiteAssets, renderer, cam: Camera, cfg: SimConfig, seed: int, net=
     rng = np.random.default_rng(seed)
     frame: SiteFrame = site.frame
     res = site.dtm.res_m
-    onboard = make_onboard_model(site.dtm.z, res, seed=int(rng.integers(1 << 30)))
+    onboard = make_onboard_model(site.dtm.z, res, seed=int(rng.integers(1 << 30)), coarse_z=site.wide_known_z)
     R = look_at(np.array([0, 0, 1.0]), np.array([0, 0, 0.0]))            # fixed nadir attitude, known exactly
     az, el = rng.uniform(0, 360), rng.uniform(*cfg.sun_el_range)
     sun_true = _sun(az, el)
@@ -125,7 +128,10 @@ def fly(site: SiteAssets, renderer, cam: Camera, cfg: SimConfig, seed: int, net=
 
     # nominal approach: ballistic to the target from a point offset by the start dispersion
     nom0 = np.array([tgt[0] + rng.normal(0, cfg.start_offset_m), tgt[1] + rng.normal(0, cfg.start_offset_m), cfg.start_alt_m])
-    v_nom = solve_ballistic_to_target(frame, nom0, tgt, 0.0, cfg.contact_vz).v0
+    if cfg.waypoint_alt_m > 0:   # Checkpoint phase: nominal coast to the Matchpoint waypoint above the aim point
+        v_nom = solve_waypoint(frame, nom0, np.array([tgt[0], tgt[1], cfg.waypoint_alt_m]), cfg.matchpoint_time_s).v0
+    else:
+        v_nom = solve_ballistic_to_target(frame, nom0, tgt, 0.0, cfg.contact_vz).v0
     x_true, v_true = nom0.copy(), v_nom + rng.normal(0, cfg.start_vel_mps, 3)
     P0 = np.diag([s ** 2 for s in cfg.est0_pos_m] + [cfg.est0_vel_mps ** 2] * 3)
     x_est0 = np.r_[x_true + rng.normal(0, cfg.est0_pos_m), v_true + rng.normal(0, cfg.est0_vel_mps, 3)]
@@ -183,7 +189,8 @@ def fly(site: SiteAssets, renderer, cam: Camera, cfg: SimConfig, seed: int, net=
             ekf.x[3:] = ekf.x[3:] + dv_cmd
             ekf.P[3:, 3:] += np.eye(3) * sigma ** 2
             matchpoint_done = True
-            result.update({"matchpoint_t": t, "burn_dv": float(mag), "burn_converged": bool(sol.converged),
+            result.update({"matchpoint_t": t, "matchpoint_alt_true": float(x_true[2]), "burn_dv": float(mag),
+                           "burn_converged": bool(sol.converged),
                            "nav_err_at_matchpoint": entry["err"]})
 
         # decision altitude reached (by the spacecraft's own estimate)

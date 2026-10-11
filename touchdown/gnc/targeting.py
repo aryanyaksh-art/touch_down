@@ -58,3 +58,28 @@ def solve_ballistic_to_target(frame: SiteFrame, x0: np.ndarray, target_xy: np.nd
         p = p + lam * step
         r = resid(p)
     return Targeting(p[:3], float(p[3]), bool(np.linalg.norm(r) < 1e-3), float(np.linalg.norm(r)))
+
+
+def solve_waypoint(frame: SiteFrame, x0: np.ndarray, x_target: np.ndarray, T: float, iters: int = 30,
+                   tol: float = 1e-6) -> Targeting:
+    """Velocity that carries the spacecraft from `x0` to the point `x_target` after exactly `T` seconds (local frame, full
+    nonlinear propagation). Used for the nominal coast from Checkpoint to Matchpoint; the Checkpoint burn is modelled as
+    having set this velocity, plus the dispersions in `SimConfig`."""
+    g = frame.g_eff_local(np.zeros(3))
+    v = (np.asarray(x_target, float) - x0) / T - 0.5 * g * T
+
+    def resid(q):
+        return frame.propagate(x0, q, T)[0] - x_target
+
+    r = resid(v)
+    for _ in range(iters):
+        if np.linalg.norm(r) < tol:
+            return Targeting(v, float(T), True, float(np.linalg.norm(r)))
+        J = np.zeros((3, 3))
+        for i in range(3):
+            dq = np.zeros(3)
+            dq[i] = 1e-4
+            J[:, i] = (resid(v + dq) - r) / 1e-4
+        v = v + np.linalg.solve(J, -r)
+        r = resid(v)
+    return Targeting(v, float(T), bool(np.linalg.norm(r) < 1e-3), float(np.linalg.norm(r)))

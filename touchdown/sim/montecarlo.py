@@ -13,25 +13,28 @@ from pathlib import Path
 from touchdown.bennu.paths import data_dir
 from touchdown.render.camera import Camera
 from touchdown.render.client import BlenderRenderer
-from touchdown.sim.assets import load_assets
+from touchdown.sim.assets import load_assets, load_wide_assets
 from touchdown.sim.landing import NN_ABLATION, SimConfig, fly
 
 
 def run(out: Path, seeds, device: str = "CPU", checkpoint: str | None = None, samples: int = 16,
         aim_mode: str = "best", head_radius_m: float | None = None, p_abort: float | None = None,
-        corr_factor: float | None = None, sigma_a: float | None = None, nn_ablation: bool = False) -> None:
+        corr_factor: float | None = None, sigma_a: float | None = None, nn_ablation: bool = False,
+        wide: bool = False) -> None:
     out.mkdir(parents=True, exist_ok=True)
     todo = [s for s in seeds if not (out / f"landing_{s:05d}.json").exists()]
     print(f"{len(todo)} of {len(seeds)} landings to run", flush=True)
     if not todo:
         return
-    path = data_dir() / "nightingale_dtm_5cm.npz"
-    site = load_assets(path)
+    path = data_dir() / ("nightingale_wide_5cm.npz" if wide else "nightingale_dtm_5cm.npz")
+    site = load_wide_assets(path) if wide else load_assets(path)
     net = None
     if checkpoint:
         from touchdown.vision.infer import HazardNet
         net = HazardNet(checkpoint)
     cfg = SimConfig(aim_mode=aim_mode)
+    if wide:                             # descent from the real Checkpoint (125 m), Matchpoint 54 m about 11 min later (NASA SVS)
+        cfg.start_alt_m, cfg.waypoint_alt_m, cfg.matchpoint_time_s = 125.0, 54.0, 660.0
     if head_radius_m is not None:
         cfg.head_radius_m = head_radius_m
     if p_abort is not None:
@@ -71,8 +74,9 @@ if __name__ == "__main__":
     ap.add_argument("--corr-factor", type=float, default=None, help="NFT measurement-noise inflation for correlated errors (default 1.5)")
     ap.add_argument("--sigma-a", type=float, default=None, help="filter process noise, unmodelled acceleration [m/s^2] (default 2e-6)")
     ap.add_argument("--nn-ablation", action="store_true", help="also judge each flight under the detector false-alarm variants (needs --checkpoint)")
+    ap.add_argument("--wide", action="store_true", help="EXTENSION: start at Checkpoint (125 m) over the wide terrain (scripts/build_wide_dtm.py)")
     a = ap.parse_args()
     if (a.seeds is None) == (a.seed_list is None):
         ap.error("give exactly one of --seeds or --seed-list")
     run(Path(a.out), a.seed_list if a.seed_list is not None else range(*a.seeds), a.device, a.checkpoint, a.samples, a.aim_mode, a.head_radius, a.p_abort,
-        a.corr_factor, a.sigma_a, a.nn_ablation)
+        a.corr_factor, a.sigma_a, a.nn_ablation, a.wide)
