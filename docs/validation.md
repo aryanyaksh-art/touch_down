@@ -217,6 +217,23 @@ Reading, both halves together (cost from 6e, benefit from here):
 - **No rule removes the cost and keeps the benefit.** L16 has the baseline's false-alarm rate but also none of the benefit. The false alarms and the true catches come from the same evidence, so a threshold alone cannot separate them.
 - **Caveats:** the benefit side is 2 to 6 landings, so differences of one landing between rules are noise. Cost and benefit come from different seed sets (random seeds 0-299 vs. the 91 hazard seeds). A detector retrained with hard negatives is the real fix, not a threshold.
 
+### 6g. Hard-negative retraining of the detector (Kaggle notebook 13)
+
+**What was tried.** v2 sometimes calls safe ground a hazard with confidence, which becomes needless back-aways (6e). A *hard negative* is a frame where that happens. The detector was run over its training frames and 2,000 fresh synthetic low-altitude frames (below 22 m, the altitude where it flies); the 30% of frames with the most confident false-alarm blobs were kept (1,907 of 6,358 frames: 1,007 synthetic train, 142 real west half, 758 fresh; they hold 52% of all confident false-alarm blob pixels). v2 was then fine-tuned three ways from the same start, same 12 epochs and learning rate: `ctrl` (the same number of frames per split, drawn at random: the control), `hn_frames` (hard frames drawn 3x as often) and `hn_pixel` (that plus a loss on the hardest 5% of safe pixels per batch). All were scored on the same 300 held-out east-half real frames; false-hazard rate (safe pixels called hazard) is read at the same pixel hazard recall, because a retrained model shifts its probabilities.
+
+| 0-10 m, false-hazard rate at hazard recall | 60% | 70% | 80% | 90% | mIoU |
+|---|---|---|---|---|---|
+| v2 (shipped) | 9.8% | 18.3% | 32.7% | 56.3% | 0.46 |
+| ctrl (random frames) | 8.8% | 17.3% | 31.5% | 55.4% | 0.47 |
+| hn_frames | 8.9% | 17.3% | 31.0% | 54.6% | 0.46 |
+| hn_pixel | 15.3% | 24.8% | 38.2% | 58.7% | 0.30 |
+
+At 10-22 m the picture is the same (80% recall: v2 21.6%, ctrl 20.7%, hn_frames 20.6%, hn_pixel 26.0%).
+
+**Result: no useful gain.** The pre-set selection rule picked `hn_frames`, but it is only 0.5 points better than the random-frame control at 80% recall (31.0% vs. 31.5%) and 1.7 points better than v2; nearly all of that small gain also appears in the control, so it comes from extra training and fresh data, not from hardness. The pixel-level hard-negative loss (weight 1.0) is clearly worse (mIoU 0.46 to 0.30), probably too strong; a smaller weight was not tried.
+
+**What this means.** Concentrating training on the detector's own false alarms did not separate false alarms from true catches any better. This agrees with 6e/6f: the two come from the same evidence, so the detector's cost/benefit trade-off is a property of its features and training data, not just of how it is sampled. The closed-loop flights were deliberately not run for this variant: a difference of a point or two in false-hazard rate at matched recall cannot show up in 300 or 91 landings, and it would cost about 4 GPU hours. Caveats: one training seed per variant and no intervals; a held-out set of 300 frames; only the settings above were tried (3x oversampling, top 30%, 12 epochs). Untested ideas that attack the cause rather than the sampling: more real-terrain training frames (the east half stays held out), a threshold chosen per altitude from the matched-recall curve, and fusing two detectors.
+
 ## 7. Known weaknesses and planned fixes
 
 | Weakness | Evidence | Planned or possible fix |
