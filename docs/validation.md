@@ -132,6 +132,20 @@ Each landing aims at a **random** point that is safe on the true map (clearance 
 
 Replays on the website are re-flown on a different GPU from these runs, so small rendering differences are possible.
 
+### 6c. Filter calibration sweep (Kaggle, 100 landings per setting, seeds 0-99)
+
+Same flights re-run with different filter settings (`notebooks/09_kaggle_filter_sweep.ipynb`; measurement-correlation factor `corr` and filter process noise `sigma_a`). NEES is the filter's own consistency check: for 3 degrees of freedom the mean should be 3 and 95% of landings should fall under 7.815.
+
+| Setting | n | NEES mean (expect 3) | NEES median | Within 95% bound (expect 95%) | Nav error at decision, median | Contact predicted vs actual, median | Back-away |
+|---|---|---|---|---|---|---|---|
+| baseline (corr 1.5, sigma_a 2e-6) | 100 | 9.6 | 7.6 | 52% | 2.5 cm | 2.9 cm | 12.0% |
+| corr 2.0 | 100 | 7.0 | 5.4 | 67% | 2.5 cm | 3.2 cm | 12.0% |
+| corr 2.5 | 100 | 5.2 | 4.1 | 80% | 2.6 cm | 3.1 cm | 12.0% |
+| corr 3.0 | 100 | 4.0 | 3.1 | 88% | 2.7 cm | 3.1 cm | 16.0% |
+| corr 2.5 + sigma_a 1e-5 | 100 | 1.9 | 1.6 | 100% | 2.1 cm | 2.2 cm | 15.0% (read from a truncated log line; confirm in `calibration.md`) |
+
+Reading: the default filter is overconfident (mean NEES 9.6, only 52% inside the bound), as already documented. Inflating the measurement errors helps steadily, and adding process noise overshoots into mild conservatism (NEES 1.9, everything inside the bound). The best-calibrated setting lies between the last two rows. None of this changes the position estimates much (navigation error at the decision stays 2 to 3 cm) and the back-away rate moves only between 12% and 16% on 100 landings, so the headline results are not sensitive to it. The published-parameter 1,000-landing run uses the default filter; a calibrated setting is a candidate for a final re-run. Single seed set, n = 100 per row, so differences of a few points are within noise.
+
 ## 7. Known weaknesses and planned fixes
 
 | Weakness | Evidence | Planned or possible fix |
