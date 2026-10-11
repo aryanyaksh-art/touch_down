@@ -17,7 +17,7 @@ from touchdown.sim.assets import load_assets
 from touchdown.sim.landing import NN_ABLATION, SimConfig, fly
 
 
-def run(out: Path, seeds: range, device: str = "CPU", checkpoint: str | None = None, samples: int = 16,
+def run(out: Path, seeds, device: str = "CPU", checkpoint: str | None = None, samples: int = 16,
         aim_mode: str = "best", head_radius_m: float | None = None, p_abort: float | None = None,
         corr_factor: float | None = None, sigma_a: float | None = None, nn_ablation: bool = False) -> None:
     out.mkdir(parents=True, exist_ok=True)
@@ -59,7 +59,8 @@ def run(out: Path, seeds: range, device: str = "CPU", checkpoint: str | None = N
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     ap.add_argument("--out", required=True)
-    ap.add_argument("--seeds", nargs=2, type=int, required=True)
+    ap.add_argument("--seeds", nargs=2, type=int, default=None, help="half-open seed range START END")
+    ap.add_argument("--seed-list", nargs="+", type=int, default=None, help="explicit seeds instead of a range (e.g. only the hazard cases)")
     ap.add_argument("--device", default="CPU")
     ap.add_argument("--checkpoint", default=None)
     ap.add_argument("--samples", type=int, default=16)
@@ -71,5 +72,7 @@ if __name__ == "__main__":
     ap.add_argument("--sigma-a", type=float, default=None, help="filter process noise, unmodelled acceleration [m/s^2] (default 2e-6)")
     ap.add_argument("--nn-ablation", action="store_true", help="also judge each flight under the detector false-alarm variants (needs --checkpoint)")
     a = ap.parse_args()
-    run(Path(a.out), range(*a.seeds), a.device, a.checkpoint, a.samples, a.aim_mode, a.head_radius, a.p_abort,
+    if (a.seeds is None) == (a.seed_list is None):
+        ap.error("give exactly one of --seeds or --seed-list")
+    run(Path(a.out), a.seed_list if a.seed_list is not None else range(*a.seeds), a.device, a.checkpoint, a.samples, a.aim_mode, a.head_radius, a.p_abort,
         a.corr_factor, a.sigma_a, a.nn_ablation)

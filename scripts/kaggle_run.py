@@ -19,7 +19,8 @@ import time
 ROOT = "/tmp/touch_down"
 ap = argparse.ArgumentParser()
 ap.add_argument("--ckpt", required=True)
-ap.add_argument("--seeds", nargs=2, type=int, required=True)
+ap.add_argument("--seeds", nargs=2, type=int, default=None)
+ap.add_argument("--seed-list", nargs="+", type=int, default=None, help="explicit seeds instead of a range")
 ap.add_argument("--out", required=True)
 ap.add_argument("--max-hours", type=float, default=8.5)
 ap.add_argument("--aim-mode", default="random_safe", choices=["best", "random_safe"])
@@ -30,9 +31,11 @@ a = ap.parse_args()
 
 os.chdir(ROOT)
 env = dict(os.environ, TOUCHDOWN_DATA="/tmp/data", TOUCHDOWN_BLENDER="/tmp/blender/blender")
-n_total = a.seeds[1] - a.seeds[0]
-mc = subprocess.Popen([sys.executable, "-m", "touchdown.sim.montecarlo", "--out", a.out, "--seeds", str(a.seeds[0]),
-                       str(a.seeds[1]), "--device", "GPU", "--checkpoint", a.ckpt, "--aim-mode", a.aim_mode]
+if (a.seeds is None) == (a.seed_list is None):
+    ap.error("give exactly one of --seeds or --seed-list")
+n_total = len(a.seed_list) if a.seed_list is not None else a.seeds[1] - a.seeds[0]
+seed_args = ["--seed-list"] + [str(x) for x in a.seed_list] if a.seed_list is not None else ["--seeds", str(a.seeds[0]), str(a.seeds[1])]
+mc = subprocess.Popen([sys.executable, "-m", "touchdown.sim.montecarlo", "--out", a.out] + seed_args + ["--device", "GPU", "--checkpoint", a.ckpt, "--aim-mode", a.aim_mode]
                       + (["--head-radius", str(a.head_radius)] if a.head_radius is not None else [])
                       + (["--p-abort", str(a.p_abort)] if a.p_abort is not None else [])
                       + (["--nn-ablation"] if a.nn_ablation else []),
