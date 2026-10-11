@@ -11,6 +11,9 @@ export interface View {
   detector: boolean
 }
 
+/** Landings are numbered 1 to N on the page; seeds inside the code start at 0. */
+export const landingNo = (seed: number) => seed + 1
+
 export const viewKey = (v: View) => `${v.prior}_${v.detector ? 'nn' : 'baseline'}`
 
 export function outcomeOf(p: LandingPoint, key: string): Outcome {

@@ -5,6 +5,7 @@ import {
   OUTCOME_LABEL,
   armPhase,
   gauss,
+  landingNo,
   layoutStars,
   mulberry32,
   viewKey,
@@ -383,7 +384,7 @@ export default function Galaxy({ stars, view, interactive, paused, reduce, bloom
       <div ref={labelRef} className="star-label" data-show={hover ? 'true' : 'false'} aria-hidden="true">
         {hover && (
           <>
-            <b>Landing {hover.seed}</b>
+            <b>Landing {landingNo(hover.seed)}</b>
             <span>{hover.err.toFixed(2)} m from the aim point</span>
             <span className={hover.outcome === 'hazard' ? 'hot' : ''}>{OUTCOME_LABEL[hover.outcome]}</span>
             {hover.replayId && <span className="dim">full camera replay</span>}

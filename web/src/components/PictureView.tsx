@@ -53,7 +53,7 @@ export default function PictureView({ seed, detector }: { seed: number; detector
       </div>
       <div className="frame" onPointerMove={onMove} onPointerUp={(e) => e.pointerType === 'touch' && onTap(e)} onPointerLeave={() => setHover(null)}>
         <ZoomPan>
-          <img ref={imgRef} src={dataUrl(`${base}.webp`)} alt={`What the probe saw above landing ${seed} at 5 metres`} draggable={false} />
+          <img ref={imgRef} src={dataUrl(`${base}.webp`)} alt={`What the probe saw above landing ${seed + 1} at 5 metres`} draggable={false} />
           {overlay && (
             <div className="cam-clip" style={{ clipPath: `inset(0 ${100 - split}% 0 0)` }}>
               <img className="cam-layer" src={overlay} alt="" draggable={false} />

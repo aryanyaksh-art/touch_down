@@ -10,7 +10,7 @@ import Results from './components/Results'
 import SectionDots, { type Section } from './components/SectionDots'
 import Starfield from './components/Starfield'
 import { useStatic } from './data'
-import { OUTCOME_LABEL, buildStars, demoLandings, outcomeOf, viewKey, type View } from './lib/model'
+import { OUTCOME_LABEL, buildStars, demoLandings, landingNo, outcomeOf, viewKey, type View } from './lib/model'
 import { pickExamples, type Example } from './lib/tour'
 import type { Site } from './types'
 
@@ -37,7 +37,8 @@ function useNarrow() {
 
 function seedFromHash(): number | null {
   const m = location.hash.match(HASH)
-  return m ? Number(m[1]) : null
+  // the hash carries the displayed landing number (1 to N); the code uses seeds (0 to N-1)
+  return m ? Number(m[1]) - 1 : null
 }
 
 export default function App() {
@@ -68,7 +69,7 @@ export default function App() {
   const openSeed = useCallback((seed: number, origin: { x: number; y: number }) => {
     setReplayTitle(null)
     setOpen({ seed, origin })
-    history.pushState(null, '', `#/landing/${seed}`)
+    history.pushState(null, '', `#/landing/${landingNo(seed)}`)
   }, [])
 
   const close = useCallback(() => {
@@ -165,7 +166,7 @@ export default function App() {
           onChange={(e) => {
             const i = Number(e.target.value)
             setPickIdx(i)
-            setPickText(String(sorted[i]))
+            setPickText(String(landingNo(sorted[i])))
           }}
           aria-valuetext={pickSeed === null ? 'none chosen' : `landing ${pickSeed}`}
         />
@@ -173,11 +174,11 @@ export default function App() {
           className="seed-box"
           type="number"
           inputMode="numeric"
-          min={0}
-          max={max}
-          placeholder={`0 to ${max}`}
+          min={1}
+          max={landingNo(max)}
+          placeholder={`1 to ${landingNo(max)}`}
           value={pickText}
-          aria-label={`Landing number, 0 to ${max}`}
+          aria-label={`Landing number, 1 to ${landingNo(max)}`}
           onChange={(e) => {
             const raw = e.target.value
             if (raw === '') {
@@ -187,12 +188,12 @@ export default function App() {
             }
             const n = Math.floor(Number(raw))
             if (Number.isNaN(n) || !sorted.length) return
-            const capped = Math.max(sorted[0], Math.min(max, n))
-            const i = pickNearest(capped)
-            setPickIdx(i)
+            // typed numbers are landing numbers (1 to N); cap them at the last landing
+            const capped = Math.max(landingNo(sorted[0]), Math.min(landingNo(max), n))
+            setPickIdx(pickNearest(capped - 1))
             setPickText(String(capped === n ? raw : capped))
           }}
-          onBlur={() => pickSeed !== null && setPickText(String(pickSeed))}
+          onBlur={() => pickSeed !== null && setPickText(String(landingNo(pickSeed)))}
         />
         {pickSeed !== null && (
           <button type="button" className="primary open-btn" onClick={() => openSeed(pickSeed, highlightPos.current ?? centre())}>
@@ -261,9 +262,9 @@ export default function App() {
             direction={1}
             header={
               <div className="overlay-head">
-                <h2>{replayTitle ?? `Landing ${openStar.seed}`}</h2>
+                <h2>{replayTitle ?? `Landing ${landingNo(openStar.seed)}`}</h2>
                 <p className="dim">
-                  {replayTitle ? `Landing ${openStar.seed}. ` : ''}
+                  {replayTitle ? `Landing ${landingNo(openStar.seed)}. ` : ''}
                   {outcome ? OUTCOME_LABEL[outcome] : ''}.
                 </p>
               </div>
