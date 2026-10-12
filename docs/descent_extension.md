@@ -91,3 +91,22 @@ The 125 m run's own headline numbers (150 landings): delivery median 0.675 m (0.
 - Detector effects are measured on 2 to 6 hazard landings and are noise.
 - The unpaired mean navigation consistency statistic at the decision (NEES) is 23 at 125 m against 161 at 45 m; it is dominated by outliers and was not investigated, so it is not claimed as a calibration improvement.
 - Navigation above 54 m is optimistic (see the first-six section), and the Checkpoint burn itself is still not simulated.
+
+## How much of the delivery error is the assumed burn error? (Kaggle notebook 17)
+
+The paired run above attributed the rise in delivery error to the assumed Matchpoint burn execution errors acting over the roughly 790 s arc. This tests it: the same seeds 0 to 49 from 125 m, no detector, with the three assumed burn-error terms (magnitude 1%, pointing 0.5 degrees, fixed 0.2 mm/s) scaled by 0 (perfect burns), 1 (the setting used everywhere else; seeds 0 to 49 of notebook 16) and 2. Everything else is identical, so the three rows are paired.
+
+| Burn errors | Median delivery error (95% CI) | 95th percentile (CI) | Within 1 m | Would touch a hazard if never aborted |
+|---|---|---|---|---|
+| none (0x) | 0.50 m (0.42 to 0.63) | 0.96 m (0.83 to 1.34) | 48 of 50 (96%) | 5 of 50 |
+| assumed (1x) | 0.68 m (0.51 to 0.86) | 1.21 m (1.03 to 1.37) | 41 of 50 (82%) | 9 of 50 |
+| doubled (2x) | 0.85 m (0.64 to 1.05) | 1.91 m (1.51 to 2.25) | 29 of 50 (58%) | 12 of 50 |
+
+Paired differences in median delivery error: 0x minus 1x = -0.08 m (-0.18 to -0.02); 2x minus 1x = +0.17 m (+0.10 to +0.27); 2x minus 0x = +0.24 m (+0.13 to +0.40). Navigation error at Matchpoint (0.077 to 0.078 m) and the burn size (0.074 m/s) are the same in all three, as they should be.
+
+**What it shows.**
+- **A floor of about 0.5 m that is not the burn.** With perfect burns the median is still 0.50 m. Navigation error at Matchpoint is only 8 cm, so the floor most likely comes from the truth-only unmodelled acceleration (1e-6 m/s^2 per axis, about 0.3 m per axis over a 790 s arc) plus the velocity left over from the navigation estimate. That attribution is an inference from the numbers, not a separate measurement.
+- **The assumed burn error moves the answer in the expected direction and by a modest amount.** Normal-size errors add about 0.18 m to the median; doubling them adds about 0.35 m and makes the 95th percentile 1.9 m. Hazard contacts rise with it (5, 9, 12 of 50).
+- **The comparison with the mission survives, with a range.** The mission delivered within about 1 m (one landing). Median delivery error is 0.50 to 0.85 m across 0x to 2x, and the share within 1 m falls from 96% to 58%. So "about 1 m" is reproduced for the assumed errors, but how often it is met depends on an assumption that is not a mission value.
+
+**What it does not show.** 50 seeds per setting; one error model (the three terms scaled together, not separately); the unmodelled-acceleration level (1e-6 m/s^2) was not varied, and by the argument above it matters at least as much.

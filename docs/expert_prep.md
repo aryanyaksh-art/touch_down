@@ -31,7 +31,7 @@ Pixel measurements of known 3-D landmarks spread over the image determine positi
 It combines navigation error at the burn, burn execution error, and unmodelled forces over the roughly 790 s coast. Navigation error at Matchpoint is about 8 cm; the delivery error (median 0.68 m from 125 m) is dominated by the assumed burn execution error acting over the coast. The prediction error at 5 m is the quantity comparable to the mission's "predicted vs. actual".
 
 **Why did starting at 125 m make delivery worse than starting at 45 m?**
-Because the Matchpoint burn is realistic. From 45 m the start state was almost on the final arc, so the burn was about 5 mm/s and its assumed errors (1% magnitude, 0.5° pointing, 0.2 mm/s fixed) barely mattered. From 125 m the burn is about 73 mm/s, and the same error model acts for the whole arc. Median delivery error rises from 0.39 m to 0.68 m (paired difference +0.28 m, 95% interval +0.11 to +0.35, 150 seeds). The error model is an assumption, not mission data, and was fixed before this run, not tuned to it.
+Because the Matchpoint burn is realistic. From 45 m the start state was almost on the final arc, so the burn was about 5 mm/s and its assumed errors (1% magnitude, 0.5° pointing, 0.2 mm/s fixed) barely mattered. From 125 m the burn is about 73 mm/s, and the same error model acts for the whole arc. Median delivery error rises from 0.39 m to 0.68 m (paired difference +0.28 m, 95% interval +0.11 to +0.35, 150 seeds). The error model is an assumption, not mission data, and was fixed before this run, not tuned to it. A sensitivity run on 50 seeds shows the effect: with perfect burns the median is still 0.50 m (a floor from the unmodelled acceleration and the leftover velocity estimate), with the assumed errors 0.68 m, with them doubled 0.85 m (95th percentile 1.9 m, only 58% within 1 m). So "about 1 m" holds for the assumed errors, but how often it is met depends on a number that is not a mission value.
 
 ## Method choices
 
@@ -76,14 +76,14 @@ It does not, and should not be compared: our aim points are deliberately margina
 
 - **The filter is overconfident.** On seeds 0 to 99 the default filter has mean NEES 9.6 against an expected 3, with 52% of landings inside the 95% bound (6c); inflating measurement errors fixes most of it with little change to the position estimates. The 1,000-landing mean NEES (161) is far larger than that sweep, which points to a few badly inconsistent landings; not yet investigated. The default filter was used for the published-parameter runs.
 - **Low-altitude navigation is optimistic.** The truth camera renders the same 5 cm model the onboard model derives from, so centimetre errors are not comparable with the mission's 3.5 cm. The same holds above 54 m in the wide terrain.
-- **Several parameters are not mission values:** the abort threshold (the mission's number is unpublished; 0.01 follows its stated >99% safety), burn execution errors, start dispersions, the stale cutoff. The head radius is confirmed (0.16 m from the published 32 cm outer diameter; 0.30 m is kept as a conservative sensitivity case). A sensitivity analysis exists for the decision parameters; the burn-error assumption has not been varied yet and it sets the delivery error.
+- **Several parameters are not mission values:** the abort threshold (the mission's number is unpublished; 0.01 follows its stated >99% safety), burn execution errors, start dispersions, the stale cutoff. The head radius is confirmed (0.16 m from the published 32 cm outer diameter; 0.30 m is kept as a conservative sensitivity case). A sensitivity analysis exists for the decision parameters; the burn-error assumption was varied on 50 seeds (0x, 1x, 2x: median delivery 0.50, 0.68, 0.85 m), but the unmodelled-acceleration level (1e-6 m/s^2), which sets the 0.5 m floor, has not been.
 - **Attitude is known exactly;** the real system estimates it. Photometry is Lambertian (Bennu is darker with an opposition surge).
 - **Terrain realism:** boulders injected for training are idealized; outside the 5 cm tile in the 125 m runs the boulders are synthetic.
 - **One real landing** exists to compare with. The claim is plausibility, not equivalence.
 
 ## If asked what you would do next
 
-1. Vary the burn-error assumptions in the 125 m runs, since they set the delivery error and the match to the mission.
+1. Vary the unmodelled-acceleration level (1e-6 m/s^2) in the 125 m runs; the burn-error scale is done (descent_extension.md) and the remaining 0.5 m floor most likely comes from it.
 2. Run the full 1,000 landings from 125 m (about 55 GPU hours; unrealistic on the free tier, so more paired seeds instead).
 3. Re-run with a calibrated filter and report the effect on the back-away decision.
 4. Quantify point-mass gravity against a polyhedron model.
