@@ -8,11 +8,11 @@ A from-scratch recreation of the autonomous sample collection NASA's OSIRIS-REx 
 [![tests](https://github.com/aryanyaksh-art/touch_down/actions/workflows/tests.yml/badge.svg)](https://github.com/aryanyaksh-art/touch_down/actions/workflows/tests.yml)
 ![python](https://img.shields.io/badge/python-3.12%2B-blue)
 ![license](https://img.shields.io/badge/license-MIT-green)
-![status](https://img.shields.io/badge/status-experiments%20running-orange)
+![status](https://img.shields.io/badge/status-results%20published-brightgreen)
 
 <img src="docs/img/nightingale.png" width="780" alt="Nightingale terrain and its hazard map">
 
-**Live site:** https://aryanyaksh-art.github.io/touch_down/ (a night sky of simulated landings; shows labelled sample data until the final run is published)
+**Live site:** https://aryanyaksh-art.github.io/touch_down/ (a night sky of the 1,000 simulated landings, with 12 camera replays and an analysed picture for every landing)
 
 <sub>Nightingale, OSIRIS-REx's sample site, from NASA's public 5 cm terrain model. Right: the ground-truth hazards (boulders yellow, steep ground red) and the 8 m sampling zone.</sub>
 
@@ -41,7 +41,9 @@ It was built as a recreation exercise, so it follows the real mission's method f
 | Descent controller | Done. Matchpoint-style burn, 10 cm/s ballistic descent, back-away decision at 5 m |
 | Hazard detector (extension) | v1 was weak on real terrain (boulder IoU 0.22). **v2** (angular synthetic boulders + real west-half frames) reaches boulder IoU 0.55-0.66 on the held-out east half; in a harder 1,000-landing test it cuts hazard contacts on a stale map from 1.9% to 0.6% but adds ~7 points of needless back-aways ([validation](docs/validation.md)) |
 | 1,000-landing Monte Carlo | **Done**, twice: a conservative run and a final run with the published parameters (head radius 0.16 m, abort threshold 0.01). Median delivery error 0.39 m, 91.9% within 1 m, predicted vs. actual contact 3.4 cm median (published: 3.5 cm), back-away rate 9.6%. See [validation](docs/validation.md) sections 6b to 6e |
-| Website | **Live.** Scroll from a telescope into a galaxy of landings, one star each; open a star for its picture and decision. Shows labelled sample data until the final run (published parameters, 1,000 landings) is exported |
+| Website | **Live, with the real results.** Scroll from a telescope into a galaxy of landings, one star each; open a star for its picture and decision (12 have full camera replays) |
+| Descent from the real Checkpoint (125 m) | Extension, **done on 150 paired seeds**: median delivery error 0.68 m vs. 0.39 m from 45 m, because the Matchpoint burn is realistically large ([docs/descent_extension.md](docs/descent_extension.md)) |
+| Detector retraining on its own false alarms | Tried, **no gain** beyond a random-frame control (validation 6g) |
 
 The final numbers sit in the same range as the published single landing (within about 1 m; 3.5 cm predicted vs. actual), but one real landing is not a distribution, so this shows plausibility, not equivalence.
 
@@ -103,6 +105,9 @@ Later runs moved to Kaggle (Colab's free GPU allowance ran out, and Kaggle needs
 | Replays for the website | `notebooks/08_kaggle_replays.ipynb` |
 | Navigation-filter calibration sweep | `notebooks/09_kaggle_filter_sweep.ipynb` |
 | One analysed picture per landing | `notebooks/10_kaggle_pictures.ipynb` |
+| Detector false-alarm ablation (random seeds, then the hazard cases) | `notebooks/11_kaggle_ablation.ipynb`, `notebooks/12_kaggle_ablation_hazards.ipynb` |
+| Hard-negative retraining of the detector | `notebooks/13_kaggle_hardneg.ipynb` (`14_...` closed-loop test written, not run) |
+| Descent from 125 m: first test flights, then 150 paired seeds | `notebooks/15_kaggle_wide_spike.ipynb`, `notebooks/16_kaggle_wide_paired.ipynb` |
 
 Locally:
 
@@ -130,7 +135,7 @@ touchdown/     the package
   analysis/      comparison with published data, sensitivity, replay and picture export
 configs/       physical constants and thresholds, each with its source
 scripts/       data download, figures, demos and benchmarks
-notebooks/     Colab (01-04, 06) and Kaggle (05, 07-10) notebooks
+notebooks/     Colab (01-04, 06) and Kaggle (05, 07-16) notebooks
 web/           the website: telescope zoom, galaxy of landings, replays
 docs/          method, validation, references, expert-review prep
 tests/         pytest suite (runs in CI)
@@ -143,6 +148,7 @@ tests/         pytest suite (runs in CI)
 | [docs/method.md](docs/method.md) | What each part does, and where it departs from the real mission |
 | [docs/validation.md](docs/validation.md) | How each part is checked, the results so far, known weaknesses and planned fixes |
 | [docs/references.md](docs/references.md) | Every published value, with its source and whether it is confirmed |
+| [docs/descent_extension.md](docs/descent_extension.md) | Descent from the real 125 m Checkpoint: the wide terrain, what is assumed, and the paired comparison with the 45 m runs |
 | [docs/expert_prep.md](docs/expert_prep.md) | Questions a space-robotics reviewer is likely to ask, with honest answers |
 | [docs/PLAN.md](docs/PLAN.md) | The original project plan |
 

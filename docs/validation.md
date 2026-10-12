@@ -84,13 +84,13 @@ Compared with published figures. Only one real landing exists, so agreement show
 
 Boulder statistics: the published size-frequency slope for Bennu (−2.3 to −3.0 at candidate sites) is compared with the slope recovered from the detector's output on the real tile. Because the injected training boulders use −2.9, a match would be partly circular on synthetic terrain; on the real tile it measures detection bias across sizes. (The slope computed directly from the real tile's hazard map is consistent with the published range above about 0.75 m once touching rocks are split by a watershed; below that the count is incomplete. See references.md.)
 
-## 5. Sensitivity (script ready; run on the finished Monte Carlo)
+## 5. Sensitivity
 
 `python -m touchdown.analysis.sensitivity DIR` re-tests the saved landings without re-flying. Vary the assumed parameters that are not mission values (abort threshold, head radius, stale-map cutoff, correlated-error terms) and report how the conclusions move. A conclusion that depends on one of them should be stated as conditional.
 
 ## 6. Results table
 
-Monte Carlo of 1,000 landings is running (seeds 0-999, results one JSON per landing). **Provisional numbers from the first 69 landings** (not final, small sample):
+**Superseded.** This section is the first provisional table (69 landings of an early run with the easy max-clearance aim point), kept for history. The final results are in 6d (published parameters, 1,000 landings, thin-margin aim points); 6b is the earlier conservative run; descent from the real Checkpoint is in `docs/descent_extension.md`.
 
 | Quantity | TouchDown (n=69) | Published |
 |---|---|---|
@@ -105,8 +105,6 @@ Monte Carlo of 1,000 landings is running (seeds 0-999, results one JSON per land
 | Stale map, baseline | 1.4% | 1.4% | 0.0% | 97.1% |
 | Complete map + detector | 8.7% | 1.4% | 7.2% | 89.9% |
 | Stale map + detector | 8.7% | 1.4% | 7.2% | 89.9% |
-
-Replace with the final table after the run (`python -m touchdown.analysis.compare_published DIR`).
 
 **Reading the provisional result.** The detector does not reduce hazard contacts in this experiment and adds needless back-aways. The aim point has 2.3 m of clearance from any hazard, so the baseline already succeeds 97% of the time and there is little for a detector to add; and the stale-map scenario (boulders under 0.8 m removed) barely changes the prior. The experiment may simply be too easy to show a benefit. See section 7.
 
