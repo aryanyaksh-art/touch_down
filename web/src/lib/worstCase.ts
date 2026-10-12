@@ -8,12 +8,13 @@
 //   empty  nothing at all (the page falls back to its labelled sample data)
 //   one    a single landing and a single replay with a single frame
 //   huge   5,000 landings, to look at galaxy performance
+//   broken every replay has one frame with its fields missing (exercises the error boundary)
 
-export type Fixture = 'worst' | 'empty' | 'one' | 'huge'
+export type Fixture = 'worst' | 'empty' | 'one' | 'huge' | 'broken'
 
 export function currentFixture(): Fixture | null {
   const v = new URLSearchParams(location.search).get('data')
-  return v === 'worst' || v === 'empty' || v === 'one' || v === 'huge' ? v : null
+  return v === 'worst' || v === 'empty' || v === 'one' || v === 'huge' || v === 'broken' ? v : null
 }
 
 const LONG_TITLE = 'Detector catches a missed boulder that the old ground map had never shown, in the last five metres of the descent'
@@ -58,6 +59,7 @@ export function applyFixture(path: string, json: any, fx: Fixture): any {
   }
   if (path === 'pictures.json' && (fx === 'empty' || fx === 'one')) return { seeds: [], detector: false }
   if (path.startsWith('replays/') && json && Array.isArray(json.frames)) {
+    if (fx === 'broken') return { ...json, frames: [{ t: 0 }] }
     if (fx === 'one') return { ...json, frames: json.frames.slice(0, 1) }
     if (fx === 'worst') return { ...json, title: LONG_TITLE, blurb: LONG_BLURB, decision: { ...json.decision, p_hazard: {} } }
   }

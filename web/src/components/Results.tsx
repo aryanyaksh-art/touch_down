@@ -130,7 +130,7 @@ export default function Results({ summary, points, sample }: { summary: Summary 
     <section className="block results" id="results">
       <h2>How the landings turned out</h2>
       <p className="lede">
-        Based on {n.toLocaleString()} simulated landings{sample ? ' (sample data for now)' : ''}. Tap the i on a tile for the precise numbers.
+        Based on {n.toLocaleString()} simulated landing{n === 1 ? '' : 's'}{sample ? ' (sample data for now)' : ''}. Tap the i on a tile for the precise numbers.
       </p>
       <div className="tiles" ref={ref}>
         <Tile

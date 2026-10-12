@@ -52,7 +52,7 @@ export default function LandingOverlay({ origin, reduce, onClose, contentKey, di
       aria-modal="true"
       initial={reduce ? { opacity: 0 } : { clipPath: closed }}
       animate={reduce ? { opacity: 1 } : { clipPath: open }}
-      exit={reduce ? { opacity: 0 } : { clipPath: closed }}
+      exit={reduce ? { opacity: 0 } : { clipPath: closed, transition: { duration: 0.35, ease: EASE_OUT } }}
       transition={{ duration: reduce ? 0.18 : 0.7, ease: EASE_OUT }}
     >
       <Starfield paused={false} inline />

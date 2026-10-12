@@ -53,10 +53,14 @@ export function useStatic() {
 }
 
 export function useReplay(id: string | null) {
-  const [replay, setReplay] = useState<Replay | null>(null)
+  const [state, setState] = useState<{ replay: Replay | null; failed: boolean }>({ replay: null, failed: false })
   useEffect(() => {
-    setReplay(null)
-    if (id) getJson<Replay>(`replays/${id}.json`).then(setReplay)
+    setState({ replay: null, failed: false })
+    let live = true
+    if (id) getJson<Replay>(`replays/${id}.json`).then((r) => live && setState({ replay: r, failed: r === null }))
+    return () => {
+      live = false
+    }
   }, [id])
-  return replay
+  return state
 }

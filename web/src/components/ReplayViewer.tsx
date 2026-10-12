@@ -16,7 +16,7 @@ interface Props {
 
 export default function ReplayViewer({ id, site, onLoaded }: Props) {
   const reduce = useReducedMotion()
-  const replay = useReplay(id)
+  const { replay, failed } = useReplay(id)
   const [k, setK] = useState(0)
   const [playing, setPlaying] = useState(false)
   const [showLabels, setShowLabels] = useState(true)
@@ -53,6 +53,7 @@ export default function ReplayViewer({ id, site, onLoaded }: Props) {
     return () => clearInterval(timer)
   }, [playing, replay])
 
+  if (failed || (replay && replay.frames.length === 0)) return <p className="muted" role="alert">This replay could not be loaded.</p>
   if (!replay) return <p className="muted">Loading the replay.</p>
 
   const hasDetector = replay.decision.abort['complete_nn'] !== undefined

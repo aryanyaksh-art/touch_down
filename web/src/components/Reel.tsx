@@ -19,10 +19,13 @@ export function reelSceneTop(el: HTMLElement, i: number): number {
 }
 
 /** Which scene is showing at page scroll `y`, clamped. */
-export function reelIndexAt(el: HTMLElement, y: number): number {
-  const top = el.getBoundingClientRect().top + window.scrollY
-  const p = (y - top) / Math.max(1, el.offsetHeight - window.innerHeight)
+export function reelIndexFrom(top: number, height: number, viewportH: number, y: number): number {
+  const p = (y - top) / Math.max(1, height - viewportH)
   return Math.max(0, Math.min(SCENE_COUNT - 1, Math.floor(p * SCENE_COUNT)))
+}
+
+export function reelIndexAt(el: HTMLElement, y: number): number {
+  return reelIndexFrom(el.getBoundingClientRect().top + window.scrollY, el.offsetHeight, window.innerHeight, y)
 }
 
 function SkyDots() {
@@ -39,7 +42,9 @@ function SkyDots() {
   )
 }
 
-function SceneLayer({ index, narrow, reduce, onExample }: { index: number; narrow: boolean; reduce: boolean; onExample: (kind: 'clean' | 'back' | 'old') => void }) {
+type Kind = 'clean' | 'back' | 'old'
+
+function SceneLayer({ index, narrow, reduce, onExample, has }: { index: number; narrow: boolean; reduce: boolean; onExample: (kind: Kind) => void; has: (kind: Kind) => boolean }) {
   const scene = SCENES[index]
   const [go, setGo] = useState(false)
   const [run, setRun] = useState(0)
@@ -67,7 +72,7 @@ function SceneLayer({ index, narrow, reduce, onExample }: { index: number; narro
         {scene.title && <p className="dim">{scene.line}</p>}
       </div>
       <div className="reel-actions">
-        {scene.example && (
+        {scene.example && has(scene.example) && (
           <button type="button" className="ghost" onClick={() => onExample(scene.example!)}>
             See a real one <ArrowRight size={14} />
           </button>
@@ -80,7 +85,7 @@ function SceneLayer({ index, narrow, reduce, onExample }: { index: number; narro
   )
 }
 
-export default function Reel({ narrow, onExample }: { narrow: boolean; onExample: (kind: 'clean' | 'back' | 'old') => void }) {
+export default function Reel({ narrow, onExample, has }: { narrow: boolean; onExample: (kind: Kind) => void; has: (kind: Kind) => boolean }) {
   const ref = useRef<HTMLElement>(null)
   const reduce = !!useReducedMotion()
   const { scrollYProgress } = useScroll({ target: ref, offset: ['start start', 'end end'] })
@@ -137,7 +142,7 @@ export default function Reel({ narrow, onExample }: { narrow: boolean; onExample
             exit="exit"
             transition={{ duration: reduce ? 0.45 : 0.75, ease: EASE_IN_OUT }}
           >
-            <SceneLayer index={idx} narrow={narrow} reduce={reduce} onExample={onExample} />
+            <SceneLayer index={idx} narrow={narrow} reduce={reduce} onExample={onExample} has={has} />
           </motion.div>
         </AnimatePresence>
         <div className="reel-part" aria-live="polite">

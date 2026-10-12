@@ -4,7 +4,8 @@ import { ArrowUp, GithubLogo } from '@phosphor-icons/react'
 import DataCard from './components/DataCard'
 import Hero, { HERO_REST } from './components/Hero'
 import LandingOverlay from './components/LandingOverlay'
-import Reel, { PART_SPLIT, reelIndexAt, reelSceneTop } from './components/Reel'
+import ErrorBoundary from './components/ErrorBoundary'
+import Reel, { PART_SPLIT, reelIndexFrom, reelSceneTop } from './components/Reel'
 import ReplayViewer from './components/ReplayViewer'
 import Results from './components/Results'
 import SectionDots, { type Section } from './components/SectionDots'
@@ -108,18 +109,35 @@ export default function App() {
     [reduce, narrow],
   )
 
-  // which side dot is lit: decided from the real scroll position, including which scene of the reel is showing
+  // which side dot is lit: decided from the real scroll position, including which scene of the reel is showing.
+  // The section positions are measured once (and again on resize or layout change) instead of on every scroll frame.
   const [active, setActive] = useState('sky')
-  const computeActive = useCallback(() => {
+  const geo = useRef<{ reelTop: number; reelH: number; resTop: number } | null>(null)
+  const measure = useCallback(() => {
     const reel = document.getElementById('story')
     const res = document.getElementById('results')
-    if (!reel) return 'sky'
+    if (!reel) return
     const y = window.scrollY
-    const reelTop = reel.getBoundingClientRect().top + y
-    if (y + window.innerHeight * 0.5 < reelTop) return 'sky'
-    if (res && y + window.innerHeight * 0.5 >= res.getBoundingClientRect().top + y) return 'results'
-    return reelIndexAt(reel, y) < PART_SPLIT ? 'story' : 'scenes'
+    geo.current = { reelTop: reel.getBoundingClientRect().top + y, reelH: reel.offsetHeight, resTop: res ? res.getBoundingClientRect().top + y : Infinity }
   }, [])
+  const computeActive = useCallback(() => {
+    if (!geo.current) measure()
+    const g = geo.current
+    if (!g) return 'sky'
+    const y = window.scrollY
+    if (y + window.innerHeight * 0.5 < g.reelTop) return 'sky'
+    if (y + window.innerHeight * 0.5 >= g.resTop) return 'results'
+    return reelIndexFrom(g.reelTop, g.reelH, window.innerHeight, y) < PART_SPLIT ? 'story' : 'scenes'
+  }, [measure])
+  useEffect(() => {
+    measure()
+    const ro = new ResizeObserver(() => {
+      measure()
+      setActive(computeActive())
+    })
+    ro.observe(document.body)
+    return () => ro.disconnect()
+  }, [measure, computeActive])
 
   const pickNearest = (n: number) => {
     let lo = 0
@@ -139,6 +157,20 @@ export default function App() {
   useMotionValueEvent(scrollY, 'change', () => setActive(computeActive()))
   useEffect(() => setActive(computeActive()), [computeActive, stars.length])
   const max = sorted.length ? sorted[sorted.length - 1] : 0
+
+  // a link to a landing that does not exist (#/landing/9999) says so and clears itself, instead of silently pausing the sky
+  const [notice, setNotice] = useState({ text: '', show: false })
+  useEffect(() => {
+    if (!data.loaded || !open || openStar) return
+    setOpen(null)
+    if (HASH.test(location.hash)) history.replaceState(null, '', location.pathname + location.search)
+    setNotice({ text: `There is no landing ${landingNo(open.seed)}. Landings run from 1 to ${landingNo(max)}.`, show: true })
+  }, [data.loaded, open, openStar, max])
+  useEffect(() => {
+    if (!notice.show) return
+    const t = setTimeout(() => setNotice((n) => ({ ...n, show: false })), 6000)
+    return () => clearTimeout(t)
+  }, [notice])
 
   const hud = (
     <div className="hud">
@@ -238,6 +270,7 @@ export default function App() {
 
         <Reel
           narrow={narrow}
+          has={(kind) => !!examples[kind]}
           onExample={(kind) => {
             const ex = examples[kind]
             if (ex) openExample(ex)
@@ -248,6 +281,8 @@ export default function App() {
           <Results summary={demo ? null : data.summary} points={points} sample={demo} />
         </div>
       </main>
+
+      <div className="notice" role="status" data-show={notice.show}>{notice.text}</div>
 
       <footer>Independent educational recreation. Not affiliated with NASA. Terrain: NASA OSIRIS-REx Laser Altimeter shape models.</footer>
 
@@ -262,7 +297,7 @@ export default function App() {
             direction={1}
             header={
               <div className="overlay-head">
-                <h2>{replayTitle ?? `Landing ${landingNo(openStar.seed)}`}</h2>
+                <h2 className={(replayTitle ?? '').length > 48 ? 'long' : undefined}>{replayTitle ?? `Landing ${landingNo(openStar.seed)}`}</h2>
                 <p className="dim">
                   {replayTitle ? `Landing ${landingNo(openStar.seed)}. ` : ''}
                   {outcome ? OUTCOME_LABEL[outcome] : ''}.
@@ -270,11 +305,13 @@ export default function App() {
               </div>
             }
           >
-            {openStar.replayId && site && data.site ? (
-              <ReplayViewer id={openStar.replayId} site={data.site} onLoaded={(r) => setReplayTitle(r.title)} />
-            ) : (
-              <DataCard star={openStar} picture={data.pictures.has(openStar.seed)} detector={data.pictureDetector} />
-            )}
+            <ErrorBoundary key={open.seed} message="This landing could not be shown. Close it and try another.">
+              {openStar.replayId && site && data.site ? (
+                <ReplayViewer id={openStar.replayId} site={data.site} onLoaded={(r) => setReplayTitle(r.title)} />
+              ) : (
+                <DataCard star={openStar} picture={data.pictures.has(openStar.seed)} detector={data.pictureDetector} />
+              )}
+            </ErrorBoundary>
           </LandingOverlay>
         )}
       </AnimatePresence>

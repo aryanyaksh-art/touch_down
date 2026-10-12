@@ -38,7 +38,7 @@ function Title({ count }: { count: number }) {
     <>
       <h1>TouchDown</h1>
       <p>
-        A spacecraft lands on an asteroid by itself. Here are {count.toLocaleString()} simulated landings at Bennu, one star each.
+        A spacecraft lands on an asteroid by itself. {count === 1 ? 'Here is 1 simulated landing' : `Here are ${count.toLocaleString()} simulated landings`} at Bennu, one star each.
       </p>
     </>
   )
