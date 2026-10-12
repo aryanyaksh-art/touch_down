@@ -67,3 +67,12 @@ def test_defaults_follow_published_head_and_results_record_the_settings():
     site = assets_from_dtm(synthetic_site(), margin_m=8.0)
     res = fly(site, FakeRenderer(site.truth), Camera(192, 144, 44.0), cfg, seed=3)
     assert res["head_radius_m"] == 0.16 and res["p_abort_threshold"] == 0.01
+
+
+def test_perfect_burns_are_allowed_and_recorded():
+    site = assets_from_dtm(synthetic_site(), margin_m=8.0)
+    cfg = SimConfig(start_alt_m=30.0, matchpoint_time_s=40.0, burn_mag_frac=0.0, burn_fixed_mps=0.0, burn_point_deg=0.0)
+    res = fly(site, FakeRenderer(site.truth), Camera(192, 144, 44.0), cfg, seed=3)
+    assert res["burn_converged"] and not res.get("timeout")
+    assert res["burn_mag_frac"] == 0.0 and res["burn_fixed_mps"] == 0.0 and res["burn_point_deg"] == 0.0
+    assert np.isfinite(res["delivery_error_m"])

@@ -20,7 +20,7 @@ from touchdown.sim.landing import NN_ABLATION, SimConfig, fly
 def run(out: Path, seeds, device: str = "CPU", checkpoint: str | None = None, samples: int = 16,
         aim_mode: str = "best", head_radius_m: float | None = None, p_abort: float | None = None,
         corr_factor: float | None = None, sigma_a: float | None = None, nn_ablation: bool = False,
-        wide: bool = False) -> None:
+        wide: bool = False, burn_error_scale: float | None = None) -> None:
     out.mkdir(parents=True, exist_ok=True)
     todo = [s for s in seeds if not (out / f"landing_{s:05d}.json").exists()]
     print(f"{len(todo)} of {len(seeds)} landings to run", flush=True)
@@ -43,6 +43,10 @@ def run(out: Path, seeds, device: str = "CPU", checkpoint: str | None = None, sa
         cfg.nft.corr_factor = corr_factor
     if sigma_a is not None:
         cfg.sigma_a_filter = sigma_a
+    if burn_error_scale is not None:     # sensitivity of delivery error to the assumed burn execution errors (all three scaled)
+        cfg.burn_mag_frac *= burn_error_scale
+        cfg.burn_fixed_mps *= burn_error_scale
+        cfg.burn_point_deg *= burn_error_scale
     if nn_ablation:                      # false-alarm ablation, see landing.NN_ABLATION and analysis/ablation.py
         cfg.nn_variants = NN_ABLATION
     cam = Camera(640, 480, 44.0)
@@ -74,9 +78,10 @@ if __name__ == "__main__":
     ap.add_argument("--corr-factor", type=float, default=None, help="NFT measurement-noise inflation for correlated errors (default 1.5)")
     ap.add_argument("--sigma-a", type=float, default=None, help="filter process noise, unmodelled acceleration [m/s^2] (default 2e-6)")
     ap.add_argument("--nn-ablation", action="store_true", help="also judge each flight under the detector false-alarm variants (needs --checkpoint)")
+    ap.add_argument("--burn-error-scale", type=float, default=None, help="multiply the assumed burn execution errors (magnitude, fixed, pointing) by this; 0 = perfect burns")
     ap.add_argument("--wide", action="store_true", help="EXTENSION: start at Checkpoint (125 m) over the wide terrain (scripts/build_wide_dtm.py)")
     a = ap.parse_args()
     if (a.seeds is None) == (a.seed_list is None):
         ap.error("give exactly one of --seeds or --seed-list")
     run(Path(a.out), a.seed_list if a.seed_list is not None else range(*a.seeds), a.device, a.checkpoint, a.samples, a.aim_mode, a.head_radius, a.p_abort,
-        a.corr_factor, a.sigma_a, a.nn_ablation, a.wide)
+        a.corr_factor, a.sigma_a, a.nn_ablation, a.wide, a.burn_error_scale)

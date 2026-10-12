@@ -142,7 +142,8 @@ def fly(site: SiteAssets, renderer, cam: Camera, cfg: SimConfig, seed: int, net=
     result: dict = {"seed": seed, "sun_az": az, "sun_el": el, "target": tgt.tolist(),
                     "target_clearance_m": tgt_clearance, "aim_mode": cfg.aim_mode,
                     "head_radius_m": cfg.head_radius_m, "p_abort_threshold": cfg.p_abort,
-                    "corr_factor": cfg.nft.corr_factor, "sigma_a_filter": cfg.sigma_a_filter}
+                    "corr_factor": cfg.nft.corr_factor, "sigma_a_filter": cfg.sigma_a_filter,
+                    "burn_mag_frac": cfg.burn_mag_frac, "burn_fixed_mps": cfg.burn_fixed_mps, "burn_point_deg": cfg.burn_point_deg}
     while True:
         alt_true = x_true[2]
         f = renderer.render(cam, x_true, R, sun_true, want_pos=record)
