@@ -1,20 +1,19 @@
 <div align="center">
 
+<img src="docs/img/banner.jpg" width="820" alt="A spiral galaxy of stars beside the title TouchDown">
+
 # TouchDown
 
 **A spacecraft that sees hazards, finds its position without GPS, and lands by itself.**<br>
 A from-scratch recreation of the autonomous sample collection NASA's OSIRIS-REx performed at asteroid Bennu.
 
 [![tests](https://github.com/aryanyaksh-art/touch_down/actions/workflows/tests.yml/badge.svg)](https://github.com/aryanyaksh-art/touch_down/actions/workflows/tests.yml)
+[![live site](https://img.shields.io/badge/live%20site-1%2C000%20landings-ffc98a)](https://aryanyaksh-art.github.io/touch_down/)
 ![python](https://img.shields.io/badge/python-3.12%2B-blue)
 ![license](https://img.shields.io/badge/license-MIT-green)
 ![status](https://img.shields.io/badge/status-results%20published-brightgreen)
 
-<img src="docs/img/nightingale.png" width="780" alt="Nightingale terrain and its hazard map">
-
-**Live site:** https://aryanyaksh-art.github.io/touch_down/ (a night sky of the 1,000 simulated landings, with 12 camera replays and an analysed picture for every landing)
-
-<sub>Nightingale, OSIRIS-REx's sample site, from NASA's public 5 cm terrain model. Right: the ground-truth hazards (boulders yellow, steep ground red) and the 8 m sampling zone.</sub>
+[**Live site**](https://aryanyaksh-art.github.io/touch_down/) &nbsp;·&nbsp; [Method](docs/method.md) &nbsp;·&nbsp; [Validation](docs/validation.md) &nbsp;·&nbsp; [Descent from 125 m](docs/descent_extension.md) &nbsp;·&nbsp; [Reviewer Q&A](docs/expert_prep.md)
 
 </div>
 
@@ -22,50 +21,110 @@ A from-scratch recreation of the autonomous sample collection NASA's OSIRIS-REx 
 
 At Bennu, radio signals take minutes to cross the gap, so the spacecraft has to navigate and decide alone. This project rebuilds that capability end to end: it renders camera images of the real terrain, finds its position from landmarks, flies a ballistic descent, and decides at about 5 m whether to touch down or back away. It then tests the whole system with 1,000 simulated landings and compares the results with published OSIRIS-REx and Bennu data.
 
-It was built as a recreation exercise, so it follows the real mission's method first and adds one clearly labelled extension.
+It follows the real mission's method first and adds one clearly labelled extension, so every part is either **faithful** or an **extension**:
 
 | | Real OSIRIS-REx | TouchDown |
 |---|---|---|
 | Navigation | Natural Feature Tracking (NFT): match rendered landmarks to camera images, Kalman filter | Same method, reimplemented |
-| Descent | Matchpoint burn, ballistic fall, contact at ~10 cm/s | Same |
-| Hazard avoidance | Ground-built hazard map; autonomous back-away at ~5 m | Same, as the **baseline** |
+| Descent | Matchpoint burn, ballistic fall, contact at about 10 cm/s | Same |
+| Hazard avoidance | Ground-built hazard map; autonomous back-away at about 5 m | Same, as the **baseline** |
 | Onboard hazard detection | none | **Extension:** neural network on descent images |
 
-## Where it stands
+<div align="center">
+<img src="docs/img/nightingale.png" width="780" alt="Nightingale terrain and its hazard map">
+<br><sub>Nightingale, OSIRIS-REx's sample site, from NASA's public 5 cm terrain model. Right: the ground-truth hazards (boulders yellow, steep ground red) and the 8 m sampling zone.</sub>
+</div>
 
-| Part | State |
-|---|---|
-| Terrain and hazard map | Done. NASA 5 cm Nightingale model; hazards are rocks of 21 cm or more and slopes above 14° |
-| Camera simulator | Done. Blender frames with pixel-exact hazard labels; 4,500 labelled images generated |
-| Navigation (NFT + Kalman filter) | Done. Centimetre-level in simulation; the filter is overconfident (documented) |
-| Descent controller | Done. Matchpoint-style burn, 10 cm/s ballistic descent, back-away decision at 5 m |
-| Hazard detector (extension) | v1 was weak on real terrain (boulder IoU 0.22). **v2** (angular synthetic boulders + real west-half frames) reaches boulder IoU 0.55-0.66 on the held-out east half; in a harder 1,000-landing test it cuts hazard contacts on a stale map from 1.9% to 0.6% but adds ~7 points of needless back-aways ([validation](docs/validation.md)) |
-| 1,000-landing Monte Carlo | **Done**, twice: a conservative run and a final run with the published parameters (head radius 0.16 m, abort threshold 0.01). Median delivery error 0.39 m, 91.9% within 1 m, predicted vs. actual contact 3.4 cm median (published: 3.5 cm), back-away rate 9.6%. See [validation](docs/validation.md) sections 6b to 6e |
-| Website | **Live, with the real results.** Scroll from a telescope into a galaxy of landings, one star each; open a star for its picture and decision (12 have full camera replays) |
-| Descent from the real Checkpoint (125 m) | Extension, **done on 150 paired seeds**: median delivery error 0.68 m vs. 0.39 m from 45 m, because the Matchpoint burn is realistically large ([docs/descent_extension.md](docs/descent_extension.md)) |
-| Detector retraining on its own false alarms | Tried, **no gain** beyond a random-frame control (validation 6g) |
+## Results at a glance
 
-The final numbers sit in the same range as the published single landing (within about 1 m; 3.5 cm predicted vs. actual), but one real landing is not a distribution, so this shows plausibility, not equivalence.
+Every number below has its source, intervals and caveats in [docs/validation.md](docs/validation.md). One real landing exists, so matching it shows plausibility, not equivalence.
+
+| Question | Answer | Details |
+|---|---|---|
+| How accurate is the landing? | Median **0.39 m** from the aim point, **91.9%** within 1 m, 1,000 landings from 45 m (published: within about 1 m, one landing) | [validation 6d](docs/validation.md) |
+| Does it predict its own touchdown? | Median **3.4 cm** off at 5 m (published: 3.5 cm) | [validation 6d](docs/validation.md) |
+| What happens from the real start height (125 m)? | Median **0.68 m**, 79% within 1 m on 150 paired seeds. It is worse than from 45 m because the Matchpoint burn is realistically large, so the 45 m numbers understate delivery error. With perfect burns the median is still 0.50 m | [descent extension](docs/descent_extension.md) |
+| Does the neural detector help? | Only when the ground map is stale: hazard contacts 9 to 3 of 1,000 (p = 0.03), at the cost of needless back-aways rising from 7 to 72 | [validation 6b to 6f](docs/validation.md) |
+| Can the false alarms be tuned away? | No: ten evidence rules and a hard-negative retraining all fail to keep the benefit while removing the cost | [validation 6e to 6g](docs/validation.md) |
+
+## How it works
+
+<div align="center">
+<img src="docs/img/pipeline.svg" width="900" alt="Pipeline: NASA Bennu terrain feeds a Blender render and NFT navigation; the render trains a neural hazard detector; the detector and navigation feed the descent controller, which is tested by a 1,000-landing Monte Carlo shown on a website">
+</div>
+
+1. **Terrain.** NASA's 5 cm Nightingale model becomes a height grid; hazards are rocks of 21 cm or more and slopes above 14 degrees.
+2. **Camera.** Blender renders what the spacecraft's camera would see, with pixel-exact hazard labels.
+3. **Navigation.** NFT renders landmark templates from an onboard terrain model, matches them to the image, and a Kalman filter turns the matches into a position.
+4. **Descent.** A Matchpoint-style burn sets up a ballistic fall at 10 cm/s. At about 5 m the controller predicts the touchdown point and backs away if it is probably on a hazard.
+5. **Extension.** A U-Net segments hazards in the frames and fuses them into a live hazard map.
+6. **Evidence.** 1,000 landings, run on free Kaggle GPUs, compared with published data.
+
+Details and every assumption: [docs/method.md](docs/method.md).
 
 ## Honest limitations
 
-- **The detector trades safety for needless back-aways.** With the easy max-clearance aim point (513 landings, v1) it did nothing useful. In the harder 1,000-landing test (v2) it cuts stale-map hazard contacts from 1.9% to 0.6% but raises needless back-aways from 1.6% to 8.8%, because of its false alarms. Details in [docs/validation.md](docs/validation.md).
-- **The 1,000-landing runs start at 45 m, not at the real Checkpoint (125 m).** The 5 cm terrain tile is only 48 m wide. An extension starts at 125 m over a wide terrain (tile plus the 88 cm global model, with synthetic outer boulders; `docs/descent_extension.md`): on 150 paired seeds it raises the median delivery error from 0.39 m to 0.68 m because the Matchpoint burn is realistically large (0.50 m with perfect burns, 0.85 m with the assumed burn errors doubled), so the 45 m headline numbers understate delivery error. The Checkpoint burn itself is not simulated.
-- **Several parameters are assumptions**, not mission values (sampler-head radius, abort threshold, burn errors). Each is marked in the code and docs, and a sensitivity analysis is provided.
-- **Low-altitude navigation is optimistic**: the simulated camera and the onboard model share a terrain source.
+- **The 1,000-landing runs start at 45 m, not at the real Checkpoint (125 m).** The 5 cm terrain tile is only 48 m wide. An opt-in extension starts at 125 m over a wider terrain (the tile plus NASA's 88 cm global model, with synthetic outer boulders); see [docs/descent_extension.md](docs/descent_extension.md). The Checkpoint burn itself is not simulated.
+- **The detector trades safety for needless back-aways.** Its benefit is real only with a stale ground map, and it costs about 11 extra needless back-aways per hazard avoided.
+- **Several parameters are assumptions, not mission values:** the abort threshold, burn execution errors, start dispersions, the stale-map cutoff. Each is marked in the code and docs, and the sensitivity of delivery error to the burn errors is measured.
+- **Low-altitude navigation is optimistic:** the simulated camera and the onboard model share a terrain source. The same holds above 54 m in the 125 m extension.
+- **The navigation filter is overconfident** (documented, with a calibration sweep).
 
-## Pipeline
+## Try it
 
-```mermaid
-flowchart LR
-    A[NASA Bennu terrain] --> B[Blender render<br/>images + labels]
-    B --> C[U-Net<br/>hazard detector]
-    A --> D[NFT navigation<br/>Kalman filter]
-    C --> E[Descent controller<br/>land or back away]
-    D --> E
-    E --> F[1,000-landing<br/>Monte Carlo]
-    F --> G[Replay website]
+**The site** (nothing to install): <https://aryanyaksh-art.github.io/touch_down/>. Scroll from a telescope into a galaxy of 1,000 landings, one star each; open a star for its picture and decision.
+
+**The code** (Python 3.12+, [uv](https://docs.astral.sh/uv/)):
+
+```bash
+uv sync
+uv run python scripts/fetch_data.py --global   # NASA models, about 430 MB, saved outside the repo
+uv run python scripts/build_dtm.py             # 5 cm height grid of Nightingale
+uv run pytest                                  # about 100 tests; also run in CI on Python 3.12 to 3.14
 ```
+
+**The website** (`web/`, Vite + React + Motion):
+
+```bash
+cd web && npm install && npm run dev
+```
+
+## Reproduce the experiments
+
+Rendering, training and the Monte Carlo are written for a free GPU (Kaggle T4 x2). Import a notebook, set the accelerator, turn Internet on, and Save and Run All. [notebooks/README.md](notebooks/README.md) lists all 18 notebooks with what each does and how long it takes; the scripts they call are described in [scripts/README.md](scripts/README.md).
+
+## Repository map
+
+```
+touchdown/     the Python package
+  bennu/         terrain loading, height grid, the wide 125 m terrain
+  terrain/       hazard map, synthetic boulders
+  render/        camera model, Blender worker and client, GPU ray caster
+  dataset/       labelled-image generator
+  vision/        U-Net, training, evaluation, hard-negative mining
+  nav/           NFT: landmark templates, correlation, Kalman filter
+  gnc/           dynamics, targeting burns, back-away decision
+  sim/           closed-loop landing, Monte Carlo
+  analysis/      comparison with published data, ablation, sensitivity, exports
+configs/       physical constants and thresholds, each with its source
+scripts/       data download, figures, demos, Kaggle runners, analysis helpers
+notebooks/     Colab (01-04, 06) and Kaggle (05, 07-18) notebooks
+web/           the website: telescope zoom, galaxy of landings, replays
+docs/          method, validation, references, extension, reviewer Q&A, figures
+tests/         pytest suite (runs in CI)
+```
+
+## Documentation
+
+| Document | What it covers |
+|---|---|
+| [docs/method.md](docs/method.md) | What each part does, and where it departs from the real mission |
+| [docs/validation.md](docs/validation.md) | How each part is checked, all results with intervals, known weaknesses |
+| [docs/descent_extension.md](docs/descent_extension.md) | Descent from the real 125 m Checkpoint: the wide terrain, assumptions, paired comparison, burn-error sensitivity |
+| [docs/references.md](docs/references.md) | Every published value, with its source and whether it is confirmed |
+| [docs/expert_prep.md](docs/expert_prep.md) | Questions a space-robotics reviewer is likely to ask, with honest answers |
+| [docs/PLAN.md](docs/PLAN.md) | The original project plan (kept for reference) |
+| [CLAUDE.md](CLAUDE.md) | Working notes for the AI coding assistant used to build this: environment quirks and run books |
 
 <details>
 <summary><b>Figures</b></summary>
@@ -85,72 +144,6 @@ flowchart LR
 <sub>Open-loop navigation test: a 0.1 m/s descent from 40 m to 6 m, starting 0.55 m off. One run; caveats in [docs/references.md](docs/references.md).</sub>
 
 </details>
-
-## Run it
-
-Heavy steps (rendering, training, Monte Carlo) are written for a free Colab or Kaggle GPU. Everything else runs locally.
-
-| Step | Where | |
-|---|---|---|
-| 1. Render the labelled dataset | Colab GPU | [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/aryanyaksh-art/touch_down/blob/main/notebooks/01_render_dataset.ipynb) |
-| 2. Train the hazard detector | Colab GPU | [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/aryanyaksh-art/touch_down/blob/main/notebooks/02_train_unet.ipynb) |
-| 3. Run the Monte Carlo | Colab GPU | [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/aryanyaksh-art/touch_down/blob/main/notebooks/03_montecarlo.ipynb) |
-
-Later runs moved to Kaggle (Colab's free GPU allowance ran out, and Kaggle needs no Google Drive). Import these notebooks into Kaggle with a T4 x2 GPU:
-
-| Step | Notebook |
-|---|---|
-| 1,000-landing Monte Carlo (hard aim points) | `notebooks/05_kaggle.ipynb` |
-| Same, with the published head radius and abort threshold | `notebooks/07_kaggle_faithful.ipynb` |
-| Replays for the website | `notebooks/08_kaggle_replays.ipynb` |
-| Navigation-filter calibration sweep | `notebooks/09_kaggle_filter_sweep.ipynb` |
-| One analysed picture per landing | `notebooks/10_kaggle_pictures.ipynb` |
-| Detector false-alarm ablation (random seeds, then the hazard cases) | `notebooks/11_kaggle_ablation.ipynb`, `notebooks/12_kaggle_ablation_hazards.ipynb` |
-| Hard-negative retraining of the detector | `notebooks/13_kaggle_hardneg.ipynb` (`14_...` closed-loop test written, not run) |
-| Descent from 125 m: first test flights, then 150 paired seeds | `notebooks/15_kaggle_wide_spike.ipynb`, `notebooks/16_kaggle_wide_paired.ipynb` |
-
-Locally:
-
-```bash
-uv sync
-uv run python scripts/fetch_data.py --global   # NASA models, ~430 MB, saved outside the repo
-uv run python scripts/build_dtm.py             # 5 cm height grid of Nightingale
-uv run pytest
-```
-
-The website lives in [`web/`](web/) (Vite + React + Motion); see its README.
-
-## Repository map
-
-```
-touchdown/     the package
-  bennu/         terrain loading, height grid, constants
-  terrain/       hazard map, synthetic boulders
-  render/        camera model, Blender worker and client, GPU ray caster
-  dataset/       labelled-image generator
-  vision/        U-Net, training, task-aligned evaluation
-  nav/           NFT: landmark templates, correlation, Kalman filter
-  gnc/           dynamics, targeting burn, back-away decision
-  sim/           closed-loop landing, Monte Carlo
-  analysis/      comparison with published data, sensitivity, replay and picture export
-configs/       physical constants and thresholds, each with its source
-scripts/       data download, figures, demos and benchmarks
-notebooks/     Colab (01-04, 06) and Kaggle (05, 07-16) notebooks
-web/           the website: telescope zoom, galaxy of landings, replays
-docs/          method, validation, references, expert-review prep
-tests/         pytest suite (runs in CI)
-```
-
-## Documentation
-
-| Document | What it covers |
-|---|---|
-| [docs/method.md](docs/method.md) | What each part does, and where it departs from the real mission |
-| [docs/validation.md](docs/validation.md) | How each part is checked, the results so far, known weaknesses and planned fixes |
-| [docs/references.md](docs/references.md) | Every published value, with its source and whether it is confirmed |
-| [docs/descent_extension.md](docs/descent_extension.md) | Descent from the real 125 m Checkpoint: the wide terrain, what is assumed, and the paired comparison with the 45 m runs |
-| [docs/expert_prep.md](docs/expert_prep.md) | Questions a space-robotics reviewer is likely to ask, with honest answers |
-| [docs/PLAN.md](docs/PLAN.md) | The original project plan |
 
 ## Data and credits
 

@@ -21,7 +21,9 @@ The page reads static files from `public/data/`:
 | `site.json`, `index.json`, `replays/` | `python -m touchdown.analysis.export_replays` |
 | `pictures/`, `pictures.json` | `python -m touchdown.analysis.render_pictures` (Kaggle notebook 10) |
 
-Without `landings.json` the page shows 1,000 generated sample stars with a visible "sample data" tag. `public/data` is currently ignored by git (the repo-wide `data/` rule); add `!web/public/data/` to `.gitignore` when the real run is exported.
+Without `landings.json` the page shows 1,000 generated sample stars with a visible "sample data" tag. `public/data` is committed (the repo-wide `data/` ignore rule has a `!web/public/data/` exception), so the Pages build serves the real results.
+
+**Dev-only test data.** Open the dev server with `?data=worst`, `empty`, `one`, `huge` or `broken` to swap the real data for worst cases (extreme values, nothing, a single landing, 5,000 landings, a malformed replay). It lives in `src/lib/worstCase.ts` and is not part of the production build.
 
 ## Notes
 

@@ -1,0 +1,60 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1020 340" width="1020" height="340" role="img" aria-labelledby="t d">
+  <title id="t">TouchDown pipeline</title>
+  <desc id="d">NASA Bennu terrain feeds a Blender camera render and the NFT navigation filter. The render trains a neural hazard detector, an extension that is not in the real mission. The detector and the navigation filter both feed the descent controller, which decides to land or back away. The controller is tested by a 1,000-landing Monte Carlo, shown on a replay website.</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#9aa0c0"/>
+    </marker>
+    <style>
+      text { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace; fill: #f2efe8; }
+      .box { fill: #11152e; stroke: #2a3057; stroke-width: 1.5; }
+      .ext { fill: #11152e; stroke: #ffc98a; stroke-width: 2; }
+      .h { font-size: 15px; font-weight: 700; }
+      .s { font-size: 12px; fill: #9aa0c0; }
+      .a { fill: none; stroke: #9aa0c0; stroke-width: 1.6; marker-end: url(#arrow); }
+      .k { font-size: 12px; fill: #9aa0c0; }
+    </style>
+  </defs>
+  <rect width="1020" height="340" rx="14" fill="#0a0d1f"/>
+
+  <rect class="box" x="24" y="135" width="150" height="70" rx="8"/>
+  <text class="h" x="99" y="165" text-anchor="middle">NASA Bennu</text>
+  <text class="s" x="99" y="185" text-anchor="middle">5 cm terrain</text>
+
+  <rect class="box" x="220" y="40" width="170" height="70" rx="8"/>
+  <text class="h" x="305" y="70" text-anchor="middle">Blender render</text>
+  <text class="s" x="305" y="90" text-anchor="middle">images + labels</text>
+
+  <rect class="ext" x="440" y="40" width="170" height="70" rx="8"/>
+  <text class="h" x="525" y="70" text-anchor="middle">U-Net detector</text>
+  <text class="s" x="525" y="90" text-anchor="middle">extension</text>
+
+  <rect class="box" x="220" y="230" width="170" height="70" rx="8"/>
+  <text class="h" x="305" y="260" text-anchor="middle">NFT navigation</text>
+  <text class="s" x="305" y="280" text-anchor="middle">Kalman filter</text>
+
+  <rect class="box" x="650" y="135" width="170" height="70" rx="8"/>
+  <text class="h" x="735" y="165" text-anchor="middle">Descent controller</text>
+  <text class="s" x="735" y="185" text-anchor="middle">land or back away</text>
+
+  <rect class="box" x="860" y="40" width="140" height="70" rx="8"/>
+  <text class="h" x="930" y="70" text-anchor="middle">1,000 landings</text>
+  <text class="s" x="930" y="90" text-anchor="middle">Monte Carlo</text>
+
+  <rect class="box" x="860" y="230" width="140" height="70" rx="8"/>
+  <text class="h" x="930" y="260" text-anchor="middle">Website</text>
+  <text class="s" x="930" y="280" text-anchor="middle">replays + results</text>
+
+  <path class="a" d="M174,170 H197 V75 H220"/>
+  <path class="a" d="M174,170 H197 V265 H220"/>
+  <path class="a" d="M390,75 H440"/>
+  <path class="a" d="M610,75 H630 V170 H650"/>
+  <path class="a" d="M390,265 H630 V170 H650"/>
+  <path class="a" d="M820,170 H840 V75 H860"/>
+  <path class="a" d="M930,110 V230"/>
+
+  <rect x="24" y="306" width="12" height="12" rx="3" class="box"/>
+  <text class="k" x="44" y="317">follows the real mission</text>
+  <rect x="250" y="306" width="12" height="12" rx="3" class="ext"/>
+  <text class="k" x="270" y="317">extension, not in the real mission</text>
+</svg>

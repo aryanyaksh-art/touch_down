@@ -1,7 +1,16 @@
 [project]
 name = "touchdown"
 version = "0.1.0"
-description = "Recreation of OSIRIS-REx autonomous TAG at Bennu (NFT + hazard-map back-away + NN hazard detection)"
+description = "Recreation of OSIRIS-REx autonomous touch-and-go at Bennu: Natural Feature Tracking, hazard-map back-away, and a neural hazard-detector extension"
+readme = "README.md"
+license = { text = "MIT" }
+authors = [{ name = "Aryan Yaksh" }]
+keywords = ["osiris-rex", "bennu", "autonomous navigation", "natural feature tracking", "kalman filter", "hazard detection", "space robotics"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Topic :: Scientific/Engineering :: Astronomy",
+    "License :: OSI Approved :: MIT License",
+]
 requires-python = ">=3.12"
 dependencies = [
     "numpy",
@@ -12,6 +21,10 @@ dependencies = [
     "pillow",
     "requests",
 ]
+
+[project.urls]
+Homepage = "https://aryanyaksh-art.github.io/touch_down/"
+Repository = "https://github.com/aryanyaksh-art/touch_down"
 
 [dependency-groups]
 dev = ["pytest"]
