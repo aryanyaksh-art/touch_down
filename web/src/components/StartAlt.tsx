@@ -22,7 +22,7 @@ function Panel({ title, rows, start }: { title: string; rows: Row[]; start: numb
           <span className="sa-track" role="img" aria-label={`${r.label}: median miss ${cm(r.m)}`}>
             <span
               className={`a sa-bar ${r.tone}`}
-              style={{ width: `${Math.min(r.m / SCALE_M, 1) * 100}%`, animationDelay: `${(start + i) * 0.12}s` }}
+              style={{ width: `${Math.min(r.m / SCALE_M, 1) * 100}%`, animationDelay: `${(start + i) * 0.07}s` }}
             />
           </span>
           <span className="sa-val">
@@ -58,7 +58,7 @@ export default function StartAlt() {
     <div className={go ? 'startalt go' : 'startalt'} ref={ref}>
       <div ref={pop}>
         <h3>Where the descent starts changes the answer</h3>
-        <p className="lede">The real probe begins its approach at 125 m. The big run began at 45 m, where the engine burn is tiny and hid some of the error.</p>
+        <p className="lede">The real probe starts at 125 m. Our big run started at 45 m, where the engine burn is tiny and hid some error.</p>
         <button type="button" className="tile-info" aria-label="The precise numbers" aria-expanded={open} onClick={() => setOpen((o) => !o)}>
           <Info size={18} />
         </button>
