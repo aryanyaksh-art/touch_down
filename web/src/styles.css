@@ -364,3 +364,25 @@ footer { position: relative; z-index: 1; border-top: 1px solid var(--line); padd
   .slider { height: 32px; }
   .controls input[type='range'], .compare input[type='range'] { height: 32px; }
 }
+
+/* start-altitude comparison under the result tiles (components/StartAlt.tsx) */
+.startalt { position: relative; margin-top: 72px; padding-top: 18px; border-top: 1px solid var(--line); }
+.startalt h3 { font-size: clamp(20px, 2.2vw, 26px); max-width: 30ch; padding-right: 48px; }
+.startalt .lede { margin-top: 10px; padding-right: 48px; }
+.sa-pop { left: auto; max-width: 560px; }
+.sa-pop a { color: var(--amber); }
+.sa-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px 56px; margin-top: 28px; }
+.sa-panel h4 { font-size: 13px; font-weight: 400; color: var(--dim); }
+.sa-row { display: grid; grid-template-columns: 124px minmax(0, 1fr) 64px; align-items: center; gap: 12px; margin-top: 14px; }
+.sa-label { font-size: 13px; white-space: nowrap; }
+.sa-track { display: block; height: 14px; background: var(--sky-2); border-radius: var(--radius); overflow: hidden; }
+.sa-bar { display: block; height: 100%; border-radius: var(--radius); transform-origin: 0 50%; }
+.sa-bar.old { background: var(--hot-star); }
+.sa-bar.new { background: var(--amber); }
+.sa-val { font-family: var(--display); font-weight: 600; text-align: right; }
+.sa-foot { margin-top: 22px; font-size: 13px; color: var(--dim); }
+.startalt .a { animation: bar-x 0.8s var(--ease-out) both; animation-play-state: paused; }
+.startalt.go .a { animation-play-state: running; }
+@keyframes bar-x { from { transform: scaleX(0); } }
+@media (max-width: 760px) { .sa-grid { grid-template-columns: minmax(0, 1fr); } .sa-row { grid-template-columns: 112px minmax(0, 1fr) 56px; } }
+@media (prefers-reduced-motion: reduce) { .startalt .a { animation-name: tile-fade !important; animation-duration: 0.8s !important; animation-timing-function: ease !important; } }

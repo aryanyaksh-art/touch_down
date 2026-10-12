@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { useInView } from 'motion/react'
 import { Info } from '@phosphor-icons/react'
 import CountText from './CountText'
+import StartAlt from './StartAlt'
 import type { LandingPoint, Summary } from '../types'
 
 // Four plain-English tiles. Numbers count up and each tile has a small animation that plays when it arrives.
@@ -188,6 +189,7 @@ export default function Results({ summary, points, sample }: { summary: Summary 
           <MiniDots k={Math.round(back * 100)} />
         </Tile>
       </div>
+      <StartAlt />
     </section>
   )
 }

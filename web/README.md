@@ -2,7 +2,7 @@
 
 Vite + React + TypeScript, animated with [Motion](https://motion.dev). A flat night sky: no gradients anywhere.
 
-**What it does.** Scrolling zooms from a flat vector telescope into its blue lens, which swells into a galaxy where every star is one simulated landing (three spiral arms by outcome, distance from the core is how far the landing ended from its aim point). Scrolling on dives into the core and lands on an asteroid, then a pinned full-screen reel plays seven short animations: how a probe sees hazards, and three landings (clean, backing away, an out-of-date map). Four animated tiles summarise the results. Click a star, use the landing slider, or open `#/landing/<seed>` to see that landing: a full camera replay for exported ones, or a data card with the analysed 5 m picture (zoom, layers, before/after slider, hover readout).
+**What it does.** Scrolling zooms from a flat vector telescope into its blue lens, which swells into a galaxy where every star is one simulated landing (three spiral arms by outcome, distance from the core is how far the landing ended from its aim point). Scrolling on dives into the core and lands on an asteroid, then a pinned full-screen reel plays seven short animations: how a probe sees hazards, and three landings (clean, backing away, an out-of-date map). Four animated tiles summarise the results, and a small bar comparison under them shows how the starting height of the descent (45 m vs. the real 125 m) and the assumed burn errors change the median miss (`StartAlt.tsx`; its numbers are hard-coded in `src/lib/startAlt.ts` from `docs/descent_extension.md`). Click a star, use the landing slider, or open `#/landing/<seed>` to see that landing: a full camera replay for exported ones, or a data card with the analysed 5 m picture (zoom, layers, before/after slider, hover readout).
 
 ```bash
 cd web
@@ -25,7 +25,7 @@ Without `landings.json` the page shows 1,000 generated sample stars with a visib
 
 ## Notes
 
-- Layout: `src/components/Hero.tsx` (telescope, galaxy, dive), `Reel.tsx` and `Story.tsx` (the seven scenes), `Results.tsx` (tiles), `LandingOverlay.tsx`, `ReplayViewer.tsx`, `PictureView.tsx`, `Galaxy.tsx` (canvas). Constants like scroll phases live at the top of `Hero.tsx`.
+- Layout: `src/components/Hero.tsx` (telescope, galaxy, dive), `Reel.tsx` and `Story.tsx` (the seven scenes), `Results.tsx` (tiles), `StartAlt.tsx` (starting-height comparison), `LandingOverlay.tsx`, `ReplayViewer.tsx`, `PictureView.tsx`, `Galaxy.tsx` (canvas). Constants like scroll phases live at the top of `Hero.tsx`.
 - Phones and reduced-motion get a still picture and a static galaxy instead of the scroll zoom; the reel keeps working, with fades instead of wipes.
 - Rollup's native binary does not load on Windows on Arm, so `package.json` overrides it with `@rollup/wasm-node`. Builds work the same elsewhere.
 - Deployment: `.github/workflows/pages.yml` builds and publishes to GitHub Pages on every push that touches `web/`.
