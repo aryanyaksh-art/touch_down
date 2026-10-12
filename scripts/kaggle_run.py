@@ -28,6 +28,7 @@ ap.add_argument("--head-radius", type=float, default=None)
 ap.add_argument("--p-abort", type=float, default=None)
 ap.add_argument("--nn-ablation", action="store_true", help="judge each flight under the detector false-alarm variants")
 ap.add_argument("--burn-error-scale", type=float, default=None, help="multiply the assumed burn execution errors by this (0 = perfect burns)")
+ap.add_argument("--accel-scale", type=float, default=None, help="multiply the assumed unmodelled acceleration by this (0 = none)")
 ap.add_argument("--wide", action="store_true", help="EXTENSION: start at Checkpoint (125 m) over the wide terrain (needs scripts/build_wide_dtm.py first)")
 a = ap.parse_args()
 
@@ -44,7 +45,8 @@ mc = subprocess.Popen([sys.executable, "-m", "touchdown.sim.montecarlo", "--out"
                       + (["--p-abort", str(a.p_abort)] if a.p_abort is not None else [])
                       + (["--nn-ablation"] if a.nn_ablation else [])
                       + (["--wide"] if a.wide else [])
-                      + (["--burn-error-scale", str(a.burn_error_scale)] if a.burn_error_scale is not None else []),
+                      + (["--burn-error-scale", str(a.burn_error_scale)] if a.burn_error_scale is not None else [])
+                      + (["--accel-scale", str(a.accel_scale)] if a.accel_scale is not None else []),
                       env=env, stdout=open(LOG, "w"), stderr=subprocess.STDOUT)
 t0 = time.time()
 while mc.poll() is None:
