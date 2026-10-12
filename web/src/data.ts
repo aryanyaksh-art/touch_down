@@ -7,7 +7,14 @@ async function getJson<T>(path: string): Promise<T | null> {
   try {
     const r = await fetch(`${base}data/${path}`)
     if (!r.ok) return null
-    return (await r.json()) as T
+    const json = (await r.json()) as T
+    if (import.meta.env.DEV) {
+      // break-ui worst-case data, dev server only (see lib/worstCase.ts); removed from the production bundle
+      const { applyFixture, currentFixture } = await import('./lib/worstCase')
+      const fx = currentFixture()
+      if (fx) return applyFixture(path, json, fx) as T
+    }
+    return json
   } catch {
     return null
   }
