@@ -165,6 +165,8 @@ Same flights and random thin-margin aim points as 6b, judged with the published 
 | complete map, + detector | 16.2% | 0.3% | 7.4% | 83.5% |
 | stale map, + detector | 16.0% | 0.3% | 7.2% | 83.7% |
 
+**Caveat (added 2026-10-12): these runs start at 45 m, where the Matchpoint burn is only about 5 mm/s, so the assumed burn errors barely act and delivery error is understated. The same seeds flown from the real 125 m Checkpoint give a median of 0.68 m instead of 0.39 m (paired difference +0.28 m, 95% interval +0.11 to +0.35); see `docs/descent_extension.md`.**
+
 Reading: with the published parameters the faithful baseline hits a hazard in about 0.5% to 0.9% of landings. The detector cuts that to 0.3% but multiplies needless back-aways by roughly seven, the same trade seen in 6b. The hazard counts are small (5 and 9 landings out of 1,000 proceed into a hazard under the baseline), so the benefit side is statistically weak.
 
 Paired against the baseline on the same flights (95% intervals):

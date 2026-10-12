@@ -74,5 +74,5 @@ One flight per seed; the decision is judged under four conditions from the same 
 * One real landing exists; matching its numbers shows plausibility, not equivalence.
 * Truth terrain resolution equals the finest onboard resolution, so centimetre-scale navigation is optimistic.
 * Attitude known exactly; point-mass gravity; Lambertian photometry (Bennu is darker and has an opposition surge).
-* Simulated altitudes start at 45 m, not at Checkpoint.
+* The default runs start at 45 m, not at Checkpoint; an opt-in extension starts at 125 m over a wide terrain (docs/descent_extension.md) and shows the 45 m runs understate delivery error.
 * Several decision parameters (head radius, abort threshold) are not mission values.
