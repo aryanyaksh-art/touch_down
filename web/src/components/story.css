@@ -22,8 +22,10 @@
   .ghost:hover, .anim-replay:hover { border-color: var(--ink); }
 }
 
-/* every animated shape starts paused and runs when the scene arrives */
-.beat-svg .a { animation-duration: 0.8s; animation-timing-function: var(--ease-out); animation-fill-mode: both; animation-play-state: paused; transform-box: fill-box; transform-origin: center; }
+/* every animated shape starts paused and runs when the scene arrives.
+   :where() keeps this base rule at zero specificity so each shape's own duration, delay and transform-origin below win
+   (as a plain `.beat-svg .a` it outranked them: the 9.6 s old-map scene ran in 0.8 s and the probe fluttered up and down) */
+:where(.beat-svg) .a { animation-duration: 0.8s; animation-timing-function: var(--ease-out); animation-fill-mode: both; animation-play-state: paused; transform-box: fill-box; transform-origin: center; }
 .beat-svg.go .a { animation-play-state: running; }
 
 .fade { animation-name: fade; }
