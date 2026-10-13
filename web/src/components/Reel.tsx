@@ -10,18 +10,27 @@ import './story.css'
 // scenes hand over with a wipe and restart from the beginning each time you arrive.
 export const SCENE_COUNT = SCENES.length
 export const PART_SPLIT = SCENES.findIndex((s) => s.part === 'Three landings')
-const SCENE_VH = 70 // scroll length per scene, in viewport heights
+// scroll length per scene, in viewport heights: the four "how a probe sees" scenes get more room so each can finish
+const SCENE_VHS = SCENES.map((s) => (s.part === 'How a probe sees' ? 110 : 70))
+const TOTAL_VH = SCENE_VHS.reduce((a, b) => a + b, 0)
+/** Scroll progress (0..1) at which scene i starts; BOUNDS[SCENE_COUNT] is 1. */
+const BOUNDS = SCENE_VHS.reduce<number[]>((acc, vh) => [...acc, acc[acc.length - 1] + vh / TOTAL_VH], [0])
+
+/** Which scene is showing at reel scroll progress p (0..1), clamped. */
+export function sceneAtProgress(p: number): number {
+  for (let i = 0; i < SCENE_COUNT; i++) if (p < BOUNDS[i + 1]) return Math.max(0, i)
+  return SCENE_COUNT - 1
+}
 
 /** Page scroll position that shows scene i of the reel whose container is `el`. */
 export function reelSceneTop(el: HTMLElement, i: number): number {
   const top = el.getBoundingClientRect().top + window.scrollY
-  return top + ((i + 0.5) / SCENE_COUNT) * (el.offsetHeight - window.innerHeight)
+  return top + ((BOUNDS[i] + BOUNDS[i + 1]) / 2) * (el.offsetHeight - window.innerHeight)
 }
 
 /** Which scene is showing at page scroll `y`, clamped. */
 export function reelIndexFrom(top: number, height: number, viewportH: number, y: number): number {
-  const p = (y - top) / Math.max(1, height - viewportH)
-  return Math.max(0, Math.min(SCENE_COUNT - 1, Math.floor(p * SCENE_COUNT)))
+  return sceneAtProgress((y - top) / Math.max(1, height - viewportH))
 }
 
 export function reelIndexAt(el: HTMLElement, y: number): number {
@@ -95,7 +104,7 @@ export default function Reel({ narrow, onExample, has }: { narrow: boolean; onEx
   const fill = useTransform(scrollYProgress, (v) => `scaleX(${Math.max(0, Math.min(1, v)).toFixed(4)})`)
 
   useMotionValueEvent(scrollYProgress, 'change', (p) => {
-    const i = Math.max(0, Math.min(SCENE_COUNT - 1, Math.floor(p * SCENE_COUNT)))
+    const i = sceneAtProgress(p)
     if (i !== prev.current) {
       setDir(i > prev.current ? 1 : -1)
       prev.current = i
@@ -125,7 +134,7 @@ export default function Reel({ narrow, onExample, has }: { narrow: boolean; onEx
   const partCount = scene.part === 'How a probe sees' ? PART_SPLIT : SCENE_COUNT - PART_SPLIT
 
   return (
-    <section ref={ref} className="reel" id="story" style={{ height: `calc(100dvh + ${SCENE_COUNT * SCENE_VH}vh)` }}>
+    <section ref={ref} className="reel" id="story" style={{ height: `calc(100dvh + ${TOTAL_VH}vh)` }}>
       <div className="reel-stage">
         <AnimatePresence initial={false} custom={dir}>
           <motion.div
@@ -151,7 +160,7 @@ export default function Reel({ narrow, onExample, has }: { narrow: boolean; onEx
         <div className="reel-progress" aria-hidden="true">
           <motion.div className="reel-progress-fill" style={{ transform: fill }} />
           {Array.from({ length: SCENE_COUNT - 1 }, (_, i) => (
-            <span key={i} className={i + 1 === PART_SPLIT ? 'tick part' : 'tick'} style={{ left: `${((i + 1) / SCENE_COUNT) * 100}%` }} />
+            <span key={i} className={i + 1 === PART_SPLIT ? 'tick part' : 'tick'} style={{ left: `${BOUNDS[i + 1] * 100}%` }} />
           ))}
         </div>
       </div>
