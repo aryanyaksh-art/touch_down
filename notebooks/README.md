@@ -35,5 +35,6 @@ Each notebook clones this repository and runs `scripts/kaggle_setup.sh` (Blender
 | 16 | `16_kaggle_wide_paired` | Kaggle | The same 150 seeds flown from 125 m, to pair with the 45 m runs | detector | about 5 h |
 | 17 | `17_kaggle_burn_sensitivity` | Kaggle | Delivery error with the assumed burn errors at zero and doubled (50 seeds each) | none | about 3 h |
 | 18 | `18_kaggle_accel_sensitivity` | Kaggle | Same seeds with the unmodelled acceleration removed, to find what sets the 0.5 m floor. Written, waiting on GPU quota | none | about 3 h |
+| 18c | `18c_colab_accel_sensitivity` | Colab | The same as 18, for a Colab T4 runtime; results are saved to Google Drive | none | about 3 h |
 
 Results from each are in [docs/validation.md](../docs/validation.md) and [docs/descent_extension.md](../docs/descent_extension.md).
