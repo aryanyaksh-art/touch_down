@@ -109,4 +109,28 @@ Paired differences in median delivery error: 0x minus 1x = -0.08 m (-0.18 to -0.
 - **The assumed burn error moves the answer in the expected direction and by a modest amount.** Normal-size errors add about 0.18 m to the median; doubling them adds about 0.35 m and makes the 95th percentile 1.9 m. Hazard contacts rise with it (5, 9, 12 of 50).
 - **The comparison with the mission survives, with a range.** The mission delivered within about 1 m (one landing). Median delivery error is 0.50 to 0.85 m across 0x to 2x, and the share within 1 m falls from 96% to 58%. So "about 1 m" is reproduced for the assumed errors, but how often it is met depends on an assumption that is not a mission value.
 
-**What it does not show.** 50 seeds per setting; one error model (the three terms scaled together, not separately); the unmodelled-acceleration level (1e-6 m/s^2) was not varied, and by the argument above it matters at least as much.
+**What it does not show.** 50 seeds per setting; one error model (the three terms scaled together, not separately). The unmodelled-acceleration level (1e-6 m/s^2) was not varied here; the next section does that.
+
+## What sets the 0.5 m floor? Removing the unmodelled acceleration (Colab notebook 18c)
+
+The burn-error sweep left a floor: with perfect burns the median was still 0.50 m. The suspect was the truth-only unmodelled acceleration (an assumed random bias of 1e-6 m/s^2 per axis, 1 sigma, that acts on the true spacecraft but is unknown to the filter and the targeting). This run removes it (`--accel-scale 0`), in two cases, on the same seeds 0 to 49 from 125 m, no detector: with the assumed burn errors, and with perfect burns. Together with notebook 17 and the nominal run this makes a 2 by 2 table. It ran on a Colab T4 (`notebooks/18c_colab_accel_sensitivity.ipynb`) because the Kaggle weekly quota was used up; the code is identical.
+
+Median delivery error from 125 m, seeds 0 to 49 (95% bootstrap interval):
+
+| | Assumed burn errors | Perfect burns |
+|---|---|---|
+| **Unmodelled acceleration on (1e-6 m/s^2)** | 0.68 m (0.51 to 0.86) | 0.50 m (0.42 to 0.63) |
+| **Unmodelled acceleration off** | 0.34 m (0.28 to 0.43) | 0.15 m (0.15 to 0.20) * |
+
+\* The bootstrap interval of this cell, as written by `compare_published`, sits just above its own sample median (0.150 m). Read its width, not its position: it is small either way. A cleaner interval needs the per-seed values.
+
+Other numbers for the two new cells (from the run's `summary.json`): 95th percentile 0.85 m (assumed burns) and 0.32 m (perfect burns); 49 of 50 within 1 m in both (98%); with perfect burns and no unmodelled acceleration the predicted-vs-actual contact error is 1.2 cm (median, published 3.5 cm) and the navigation error at the 5 m decision is 1.0 cm (median).
+
+**What it shows.**
+- **The unmodelled acceleration is the biggest single source of delivery error in this setup, bigger than the assumed burn errors.** Removing it cuts the median from 0.50 to 0.15 m with perfect burns and from 0.68 to 0.34 m with the assumed burn errors. Removing the burn errors instead cuts it by 0.18 m (with the acceleration) or 0.19 m (without). So the ranking in these runs is: acceleration first, burn errors second, and a remainder of about 0.15 m (navigation error and terrain) that neither explains.
+- **The earlier inference was right.** The floor in the burn-error sweep was the acceleration, not navigation error at Matchpoint (8 cm) and not the burn.
+- **The size of this effect is only as good as the assumption.** 1e-6 m/s^2 is a stand-in for unmodelled forces (solar radiation pressure, thermal and outgassing forces, gravity-model error) over the roughly 790 s arc; it is not a mission value. A real mission would model most of these. What the run shows is that the delivery accuracy depends on how well those forces are known, so the headline 0.68 m from 125 m is conditional on this assumption as much as on the burn errors. It is a sensitivity result, not a second measurement of the mission.
+
+**A failure this run exposed (seed 14).** In each new run exactly one landing is a gross failure (a delivery error of 3.1e5 m in the perfect-burn run and 1.5e5 m in the other, which is why the mean and the upper interval of the 95th percentile in the summary files are meaningless; medians and the sample 95th percentile are not affected). I opened the perfect-burn one: it is seed 14, the Matchpoint targeting solve did not converge (`burn_converged` false) and commanded a 66 m/s burn, after which the spacecraft left the site; it never reached the 5 m decision and hit the 4,000 s timeout. The other run's failure was not opened, but its seed 14 file is also unusually large (57 KB against about 21 KB), the same signature. This is a defect of the targeting solver on that starting geometry (Matchpoint reached at 59 m, higher than the usual 54 to 57 m), not physics, and it is why 49 of 50 is 98% and not 100%. Whether seed 14 failed the same way in the earlier runs, and how many of the 150 seeds of the nominal run did, was not checked. That check (count `burn_converged == false` and `timeout` in the notebook 16 and 17 outputs) and a more robust Matchpoint solve are open items; until they are done, the "within 1 m" shares from 125 m in this document may be slightly low.
+
+**What it does not show.** 50 seeds per cell, so only large differences are visible; one acceleration level (on or off, not intermediate values); the acceleration is a random constant bias per landing, not a time-varying or position-dependent force; the filter's own process noise (2e-6 m/s^2) was left unchanged in the "off" runs, so the filter is slightly pessimistic there.

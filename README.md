@@ -43,7 +43,7 @@ Every number below has its source, intervals and caveats in [docs/validation.md]
 |---|---|---|
 | How accurate is the landing? | Median **0.39 m** from the aim point, **91.9%** within 1 m, 1,000 landings from 45 m (published: within about 1 m, one landing) | [validation 6d](docs/validation.md) |
 | Does it predict its own touchdown? | Median **3.4 cm** off at 5 m (published: 3.5 cm) | [validation 6d](docs/validation.md) |
-| What happens from the real start height (125 m)? | Median **0.68 m**, 79% within 1 m on 150 paired seeds. It is worse than from 45 m because the Matchpoint burn is realistically large, so the 45 m numbers understate delivery error. With perfect burns the median is still 0.50 m | [descent extension](docs/descent_extension.md) |
+| What happens from the real start height (125 m)? | Median **0.68 m**, 79% within 1 m on 150 paired seeds. It is worse than from 45 m because the Matchpoint burn is realistically large, so the 45 m numbers understate delivery error. With perfect burns the median is still 0.50 m; most of that floor comes from an assumed unmodelled acceleration (removing it gives 0.15 m) | [descent extension](docs/descent_extension.md) |
 | Does the neural detector help? | Only when the ground map is stale: hazard contacts 9 to 3 of 1,000 (p = 0.03), at the cost of needless back-aways rising from 7 to 72 | [validation 6b to 6f](docs/validation.md) |
 | Can the false alarms be tuned away? | No: ten evidence rules and a hard-negative retraining all fail to keep the benefit while removing the cost | [validation 6e to 6g](docs/validation.md) |
 
