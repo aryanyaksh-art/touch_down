@@ -55,7 +55,13 @@ def run(out: Path, seeds, device: str = "CPU", checkpoint: str | None = None, sa
     with BlenderRenderer(path, samples=samples, device=device) as r:
         for s in todo:
             t0 = time.time()
-            res = fly(site, r, cam, cfg, seed=s, net=net)
+            try:
+                res = fly(site, r, cam, cfg, seed=s, net=net)
+            except Exception:    # keep the batch going and leave the traceback next to the results (no landing file, so a re-run retries it)
+                import traceback
+                (out / f"landing_{s:05d}.error.txt").write_text(traceback.format_exc())
+                print(f"seed {s}: FAILED, see landing_{s:05d}.error.txt", flush=True)
+                continue
             res["wall_s"] = time.time() - t0
             res["has_nn"] = net is not None
             tmp = out / f"landing_{s:05d}.json.tmp"

@@ -33,7 +33,8 @@ ap.add_argument("--wide", action="store_true", help="EXTENSION: start at Checkpo
 a = ap.parse_args()
 
 os.chdir(ROOT)
-LOG = f"/tmp/mc_{os.path.basename(a.out.rstrip(os.sep))}.log"   # one log per output folder so runs can go side by side
+os.makedirs(a.out, exist_ok=True)
+LOG = f"{a.out}/run.log"   # kept with the results (a lost session or a crash can then still be diagnosed); appended across re-runs
 env = dict(os.environ, TOUCHDOWN_DATA="/tmp/data", TOUCHDOWN_BLENDER="/tmp/blender/blender")
 if (a.seeds is None) == (a.seed_list is None):
     ap.error("give exactly one of --seeds or --seed-list")
@@ -47,7 +48,7 @@ mc = subprocess.Popen([sys.executable, "-m", "touchdown.sim.montecarlo", "--out"
                       + (["--wide"] if a.wide else [])
                       + (["--burn-error-scale", str(a.burn_error_scale)] if a.burn_error_scale is not None else [])
                       + (["--accel-scale", str(a.accel_scale)] if a.accel_scale is not None else []),
-                      env=env, stdout=open(LOG, "w"), stderr=subprocess.STDOUT)
+                      env=env, stdout=open(LOG, "a"), stderr=subprocess.STDOUT)
 t0 = time.time()
 while mc.poll() is None:
     hrs = (time.time() - t0) / 3600
@@ -59,6 +60,7 @@ while mc.poll() is None:
         break
     time.sleep(60)
 mc.wait()
+print(f"flight process exited with code {mc.returncode}", flush=True)
 print(open(LOG).read()[-1500:], flush=True)
 for mod, name in (("compare_published", "summary.json"), ("sensitivity", "sensitivity.json")) + ((("ablation", "ablation.json"),) if a.nn_ablation else ()):
     r = subprocess.run([sys.executable, "-m", f"touchdown.analysis.{mod}", a.out, "--out", f"{a.out}/{name}"],
