@@ -43,6 +43,7 @@ Run from the repo root with `uv run python scripts/<name>.py`. Scripts marked *s
 | `pick_replay_seeds.py` | Choose instructive seeds for the website replays. *stdlib* |
 | `pick_hazard_seeds.py` | List the seeds where touching down would hit a hazard (the only ones where the detector can matter). *stdlib* |
 | `compare_start_alt.py` | Paired comparison of the same seeds from 125 m and from 45 m, with bootstrap intervals. *stdlib* |
+| `find_failures.py` | List (and with `--move` set aside) landings whose Matchpoint burn failed, so a re-run flies those seeds again. *stdlib* |
 | `wide_report.py` | Matchpoint altitude and navigation error by altitude band for descents from 125 m. *stdlib* |
 | `build_web_data.py` | Build the small data files the website reads. *stdlib* |
 
