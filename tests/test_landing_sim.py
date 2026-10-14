@@ -84,3 +84,14 @@ def test_no_unmodelled_acceleration_is_allowed_and_recorded():
     res = fly(site, FakeRenderer(site.truth), Camera(192, 144, 44.0), cfg, seed=3)
     assert res["burn_converged"] and not res.get("timeout") and res["unmodelled_accel"] == 0.0
     assert np.isfinite(res["delivery_error_m"])
+
+
+def test_matchpoint_burn_waits_until_a_ballistic_arc_to_contact_exists():
+    # Matchpoint is due at 68 m, above the ~56 m from which a free fall can reach the ground at 10 cm/s: the old code solved anyway,
+    # diverged and commanded a burn of tens of m/s (seed 14 of the 125 m runs). Now the burn is held until the solve converges.
+    site = assets_from_dtm(synthetic_site(), margin_m=8.0)
+    cfg = SimConfig(start_alt_m=70.0, waypoint_alt_m=68.0, matchpoint_time_s=30.0)
+    res = fly(site, FakeRenderer(site.truth), Camera(192, 144, 44.0), cfg, seed=3)
+    assert res["matchpoint_attempts"] >= 1 and res["matchpoint_delay_s"] > 0
+    assert res["burn_converged"] and res["burn_dv"] < cfg.matchpoint_max_burn_mps
+    assert not res.get("timeout")

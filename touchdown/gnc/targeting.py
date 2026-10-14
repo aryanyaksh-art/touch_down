@@ -50,7 +50,10 @@ def solve_ballistic_to_target(frame: SiteFrame, x0: np.ndarray, target_xy: np.nd
             dp = np.zeros(4)
             dp[i] = h
             J[:, i] = (resid(p + dp) - r) / h
-        step = np.linalg.solve(J, -r)
+        try:
+            step = np.linalg.solve(J, -r)
+        except np.linalg.LinAlgError:      # singular at the edge of the feasible region: report a failed solve
+            break
         # damp so the time of flight stays positive
         lam = 1.0
         while p[3] + lam * step[3] <= 1.0 and lam > 1e-3:

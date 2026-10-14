@@ -35,3 +35,9 @@ def test_a_velocity_error_moves_the_landing_point_linearly():
     xT, _ = FRAME.propagate(x0, sol.v0 + dv, sol.T)
     # about 1 mm/s * ~500 s = 0.5 m (Coriolis bends it a little)
     assert 0.3 < abs(xT[0]) < 0.8
+
+
+def test_no_ballistic_arc_to_contact_from_above_the_limit_is_a_failed_solve_not_an_exception():
+    # above v^2 / (2g) (about 56 m) a free-fall drop is already faster than 10 cm/s at the ground, so no solution exists
+    sol = solve_ballistic_to_target(FRAME, np.array([2.0, -1.0, 80.0]), np.array([0.0, 0.0]), 0.0, -0.10)
+    assert not sol.converged

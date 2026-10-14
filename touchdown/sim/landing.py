@@ -34,6 +34,7 @@ class SimConfig:
     low_alt_m: float = 12.0
     decision_alt_m: float = 5.0             # CONFIRMED: back-away decision at ~5 m
     contact_vz: float = -0.10               # CONFIRMED: -10 cm/s
+    matchpoint_max_burn_mps: float = 0.5    # ASSUMPTION (sanity bound): a Matchpoint solution needing more than this is treated as no solution
     head_radius_m: float = 0.16             # CONFIRMED: TAGSAM outer diameter 32 cm (Walsh et al. 2022, SSR 218:20). Our first 1,000-landing run used 0.30 (conservative)
     p_abort: float = 0.01                   # Norman et al. 2022: threshold set for >99% spacecraft safety, so about 0.01; the numeric value is not published. First run used 0.10
     nn_max_alt_m: float = 22.0              # NN frames used for the live hazard map below this altitude
@@ -144,7 +145,7 @@ def fly(site: SiteAssets, renderer, cam: Camera, cfg: SimConfig, seed: int, net=
                     "head_radius_m": cfg.head_radius_m, "p_abort_threshold": cfg.p_abort,
                     "corr_factor": cfg.nft.corr_factor, "sigma_a_filter": cfg.sigma_a_filter,
                     "burn_mag_frac": cfg.burn_mag_frac, "burn_fixed_mps": cfg.burn_fixed_mps, "burn_point_deg": cfg.burn_point_deg,
-                    "unmodelled_accel": cfg.unmodelled_accel}
+                    "unmodelled_accel": cfg.unmodelled_accel, "burn_converged": False, "matchpoint_attempts": 0}
     while True:
         alt_true = x_true[2]
         f = renderer.render(cam, x_true, R, sun_true, want_pos=record)
@@ -183,17 +184,25 @@ def fly(site: SiteAssets, renderer, cam: Camera, cfg: SimConfig, seed: int, net=
             sol = solve_ballistic_to_target(frame, ekf.x[:3], tgt, 0.0, cfg.contact_vz)
             dv_cmd = sol.v0 - ekf.x[3:]
             mag = np.linalg.norm(dv_cmd)
-            sigma = cfg.burn_mag_frac * mag + cfg.burn_fixed_mps
-            axis_err = rng.standard_normal(3)
-            dv_exec = _rot(axis_err, abs(rng.normal(0, cfg.burn_point_deg))) @ dv_cmd * (1 + rng.normal(0, cfg.burn_mag_frac)) \
-                + rng.normal(0, cfg.burn_fixed_mps, 3)
-            v_true = v_true + dv_exec
-            ekf.x[3:] = ekf.x[3:] + dv_cmd
-            ekf.P[3:, 3:] += np.eye(3) * sigma ** 2
-            matchpoint_done = True
-            result.update({"matchpoint_t": t, "matchpoint_alt_true": float(x_true[2]), "burn_dv": float(mag),
-                           "burn_converged": bool(sol.converged),
-                           "nav_err_at_matchpoint": entry["err"]})
+            if not sol.converged or not np.isfinite(mag) or mag > cfg.matchpoint_max_burn_mps:
+                # No free-fall arc from here reaches the ground at the contact speed: a drop from rest only gets down to
+                # 10 cm/s from below v^2/(2g), about 56 m at Bennu. Above that the solve diverges (seed 14 of the 125 m runs
+                # commanded 66 m/s and left the site). Hold the burn, coast on (the spacecraft is still descending) and
+                # try again at the next frame. Flights whose first solve converged are unchanged.
+                result["matchpoint_attempts"] += 1
+            else:
+                sigma = cfg.burn_mag_frac * mag + cfg.burn_fixed_mps
+                axis_err = rng.standard_normal(3)
+                dv_exec = _rot(axis_err, abs(rng.normal(0, cfg.burn_point_deg))) @ dv_cmd * (1 + rng.normal(0, cfg.burn_mag_frac)) \
+                    + rng.normal(0, cfg.burn_fixed_mps, 3)
+                v_true = v_true + dv_exec
+                ekf.x[3:] = ekf.x[3:] + dv_cmd
+                ekf.P[3:, 3:] += np.eye(3) * sigma ** 2
+                matchpoint_done = True
+                result.update({"matchpoint_t": t, "matchpoint_delay_s": t - cfg.matchpoint_time_s,
+                               "matchpoint_alt_true": float(x_true[2]), "burn_dv": float(mag),
+                               "burn_converged": bool(sol.converged),
+                               "nav_err_at_matchpoint": entry["err"]})
 
         # decision altitude reached (by the spacecraft's own estimate)
         if matchpoint_done and ekf.pos[2] <= cfg.decision_alt_m:
