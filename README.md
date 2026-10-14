@@ -91,7 +91,7 @@ cd web && npm install && npm run dev
 
 ## Reproduce the experiments
 
-Rendering, training and the Monte Carlo are written for a free GPU (Kaggle T4 x2). Import a notebook, set the accelerator, turn Internet on, and Save and Run All. [notebooks/README.md](notebooks/README.md) lists all 18 notebooks with what each does and how long it takes; the scripts they call are described in [scripts/README.md](scripts/README.md).
+Rendering, training and the Monte Carlo are written for a free GPU (Kaggle T4 x2). Import a notebook, set the accelerator, turn Internet on, and Save and Run All. [notebooks/README.md](notebooks/README.md) lists all 19 notebooks with what each does and how long it takes; the scripts they call are described in [scripts/README.md](scripts/README.md).
 
 ## Repository map
 
