@@ -185,10 +185,10 @@ def fly(site: SiteAssets, renderer, cam: Camera, cfg: SimConfig, seed: int, net=
             dv_cmd = sol.v0 - ekf.x[3:]
             mag = np.linalg.norm(dv_cmd)
             if not sol.converged or not np.isfinite(mag) or mag > cfg.matchpoint_max_burn_mps:
-                # No free-fall arc from here reaches the ground at the contact speed: a drop from rest only gets down to
-                # 10 cm/s from below v^2/(2g), about 56 m at Bennu. Above that the solve diverges (seed 14 of the 125 m runs
-                # commanded 66 m/s and left the site). Hold the burn, coast on (the spacecraft is still descending) and
-                # try again at the next frame. Flights whose first solve converged are unchanged.
+                # No usable solution (it should now only fail on a geometry the targeting cannot reach; seed 14 of the 125 m
+                # runs used to land here at 59 m and commanded 66 m/s, which the targeting fallback now solves). Rather than
+                # execute a nonsense burn, hold it, coast on (the spacecraft is still descending) and retry at the next frame.
+                # Flights whose first solve converged are unchanged.
                 result["matchpoint_attempts"] += 1
             else:
                 sigma = cfg.burn_mag_frac * mag + cfg.burn_fixed_mps

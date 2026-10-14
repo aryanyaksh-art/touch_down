@@ -37,7 +37,13 @@ def test_a_velocity_error_moves_the_landing_point_linearly():
     assert 0.3 < abs(xT[0]) < 0.8
 
 
-def test_no_ballistic_arc_to_contact_from_above_the_limit_is_a_failed_solve_not_an_exception():
-    # above v^2 / (2g) (about 56 m) a free-fall drop is already faster than 10 cm/s at the ground, so no solution exists
-    sol = solve_ballistic_to_target(FRAME, np.array([2.0, -1.0, 80.0]), np.array([0.0, 0.0]), 0.0, -0.10)
-    assert not sol.converged
+def test_solve_converges_from_every_altitude_a_Matchpoint_can_start_at():
+    # seed 14 of the 125 m runs started its solve at 59 m, where the constant-surface-gravity first guess has no real root, and diverged
+    # (a 66 m/s burn). The solve must now converge from 45 to 80 m with a small burn.
+    for z0 in (45.0, 50.0, 54.0, 56.0, 58.0, 59.2, 60.0, 62.0, 65.0, 70.0, 75.0, 80.0):
+        for off in ((2.0, -1.0), (-6.0, 4.0), (11.0, 11.0)):
+            sol = solve_ballistic_to_target(FRAME, np.array([off[0], off[1], z0]), np.array([-9.0, 7.0]), 0.0, -0.10)
+            assert sol.converged, (z0, off, sol)
+            xT, vT = FRAME.propagate(np.array([off[0], off[1], z0]), sol.v0, sol.T)
+            assert np.allclose(xT[:2], [-9.0, 7.0], atol=1e-3) and abs(xT[2]) < 1e-3 and abs(vT[2] + 0.10) < 1e-3
+            assert np.linalg.norm(sol.v0) < 0.5 and 100 < sol.T < 3000, (z0, off, sol)
