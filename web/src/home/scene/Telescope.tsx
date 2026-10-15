@@ -1,13 +1,20 @@
 import { useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
-import { Group, Quaternion, Vector3 } from 'three'
+import { BufferAttribute, CylinderGeometry, Group, PointLight, Quaternion, Vector3 } from 'three'
 import { TELESCOPE, tubeCentre } from '../timeline'
 import { stage } from '../stage'
+import { makePlate, makeSurface } from './procTex'
 
 // A Newtonian reflector on a German equatorial mount, the instrument a person actually looks through: a 130 mm f/5 tube with a dew
 // shield, a rack-and-pinion focuser with a 1.25 inch eyepiece, a finder scope in two rings, a counterweight shaft with two weights,
 // and an aluminium tripod with leg locks and an accessory tray. Modelled from primitives in metres, ground contact at the origin.
 // The eye lens sits where `eyeLensLocal()` in the timeline says, because the camera flies into it.
+
+let peelTex: ReturnType<typeof makeSurface> | null = null
+/** a fine orange-peel relief shared by the paint and the anodising, so close-ups show a real surface instead of flat colour */
+const peel = () => (peelTex ??= makeSurface({ seed: 21, low: [0.5, 0.5, 0.5], high: [0.6, 0.6, 0.6], blotch: 48, blotchWeight: 1, normalStrength: 0.7, repeat: 5, size: 256 }))
+let plateTex: ReturnType<typeof makePlate> | null = null
+const plate = () => (plateTex ??= makePlate(['TD-130', 'f/5  650 mm  Newtonian']))
 
 const Y = new Vector3(0, 1, 0)
 const quatTo = (dir: Vector3) => new Quaternion().setFromUnitVectors(Y, dir.clone().normalize())
@@ -21,17 +28,19 @@ function Mat({ kind }: { kind: Kind }) {
     case 'steel':
       return <meshStandardMaterial color="#8c9097" metalness={1} roughness={0.26} envMapIntensity={1.2} />
     case 'black':
-      return <meshStandardMaterial color="#111216" metalness={0.6} roughness={0.42} envMapIntensity={1} />
+      return <meshStandardMaterial color="#111216" metalness={0.6} roughness={0.42} envMapIntensity={1} normalMap={peel().normalMap} normalScale={[0.5, 0.5]} />
     case 'rubber':
       return <meshStandardMaterial color="#09090b" metalness={0} roughness={0.85} envMapIntensity={0.4} />
     case 'brass':
       return <meshStandardMaterial color="#8f7f5c" metalness={1} roughness={0.35} envMapIntensity={1} />
     case 'tube':
-      return <meshPhysicalMaterial color="#d3d6db" metalness={0.1} roughness={0.38} clearcoat={0.55} clearcoatRoughness={0.3} envMapIntensity={1.05} />
+      return <meshPhysicalMaterial color="#d3d6db" metalness={0.1} roughness={0.38} clearcoat={0.55} clearcoatRoughness={0.3} envMapIntensity={1.05} normalMap={peel().normalMap} normalScale={[0.45, 0.45]} />
     case 'inner':
       return <meshStandardMaterial color="#040405" metalness={0} roughness={0.95} side={2} />
     case 'glass':
-      return <meshPhysicalMaterial color="#04060a" metalness={0.25} roughness={0.03} clearcoat={1} clearcoatRoughness={0.02} envMapIntensity={1.8} />
+      return (
+        <meshPhysicalMaterial color="#04060a" metalness={0.25} roughness={0.03} clearcoat={1} clearcoatRoughness={0.02} envMapIntensity={1.8} iridescence={0.85} iridescenceIOR={1.7} iridescenceThicknessRange={[180, 520]} />
+      )
   }
 }
 
@@ -41,6 +50,31 @@ function Cyl({ p, axis, r, r2, len, kind, seg = 28, open = false }: { p: Vector3
   return (
     <mesh position={p} quaternion={q}>
       <cylinderGeometry args={[r2 ?? r, r, len, seg, 1, open]} />
+      <Mat kind={kind} />
+    </mesh>
+  )
+}
+/** a cylinder with a ridged (knurled) rim, for knobs and counterweights */
+function Knob({ p, axis, r, len, kind, ridges = 24 }: { p: Vector3; axis: Vector3; r: number; len: number; kind: Kind; ridges?: number }) {
+  const geo = useMemo(() => {
+    const g = new CylinderGeometry(r, r, len, ridges * 3, 1)
+    const pos = g.getAttribute('position') as BufferAttribute
+    for (let i = 0; i < pos.count; i++) {
+      const x = pos.getX(i)
+      const z = pos.getZ(i)
+      const rr = Math.hypot(x, z)
+      if (rr > r * 0.9) {
+        const a = Math.atan2(z, x)
+        const bump = Math.floor(((a + Math.PI) / (Math.PI * 2)) * ridges * 3) % 3 === 1 ? 1.07 : 1
+        pos.setXYZ(i, x * bump, pos.getY(i), z * bump)
+      }
+    }
+    g.computeVertexNormals()
+    return g
+  }, [r, len, ridges])
+  const q = useMemo(() => quatTo(axis), [axis])
+  return (
+    <mesh position={p} quaternion={q} geometry={geo}>
       <Mat kind={kind} />
     </mesh>
   )
@@ -87,11 +121,19 @@ export default function Telescope() {
     return { rt, L, a, X, H, C, up, at, ra, raTop, feet, legTop, shaft }
   }, [])
 
-  useFrame(() => {
+  const fill = useRef<PointLight>(null)
+  useFrame(({ camera }) => {
     const r = root.current
     if (!r) return
     r.visible = stage.p.world === 'outside'
     r.rotation.y = stage.p.telescopeYaw
+    // a soft fill that comes up as the camera closes in, so close-ups show the paint and the metal instead of black shadow
+    const f = fill.current
+    if (f) {
+      const d = camera.position.distanceTo(new Vector3(0, 1.4, 0))
+      f.position.copy(r.worldToLocal(camera.position.clone().add(new Vector3(-0.4, 0.5, 0.2))))
+      f.intensity = 2.4 * Math.max(0, Math.min(1, (3.2 - d) / 2.2))
+    }
   })
 
   const { rt, L, a, X, H, C, up, at, ra, raTop, feet, legTop, shaft } = m
@@ -101,6 +143,7 @@ export default function Telescope() {
 
   return (
     <group ref={root}>
+      <pointLight ref={fill} intensity={0} distance={5} decay={2} color="#dfe6ff" />
       {/* ---- tripod: three tapered legs, leg locks, rubber feet and an accessory tray */}
       {feet.map((f, i) => {
         const dir = f.clone().sub(legTop[i])
@@ -127,8 +170,8 @@ export default function Telescope() {
       <Cyl p={raTop} axis={decAxis} r={0.052} len={0.26} kind="black" />
       <Cyl p={raTop.clone().add(new Vector3(0.14, 0, 0))} axis={decAxis} r={0.058} len={0.014} kind="alu" />
       <Cyl p={raTop.clone().add(new Vector3(-0.135, 0, 0))} axis={decAxis} r={0.034} len={0.025} kind="steel" />
-      <Cyl p={H.clone().add(new Vector3(0.075, 0.07, 0.02))} axis={X} r={0.016} len={0.05} kind="steel" />
-      <Cyl p={raTop.clone().add(new Vector3(0, 0.07, 0.02))} axis={Y} r={0.014} len={0.04} kind="steel" />
+      <Knob p={H.clone().add(new Vector3(0.085, 0.07, 0.02))} axis={X} r={0.024} len={0.05} kind="black" ridges={16} />
+      <Knob p={raTop.clone().add(new Vector3(0, 0.075, 0.02))} axis={Y} r={0.022} len={0.04} kind="black" ridges={16} />
 
       {/* ---- counterweight shaft, two knurled weights, end cap and safety bolt */}
       <Rod a={raTop.clone()} b={raTop.clone().add(shaft.clone().multiplyScalar(0.66))} r={0.0125} kind="steel" />
@@ -136,9 +179,12 @@ export default function Telescope() {
         const p = raTop.clone().add(shaft.clone().multiplyScalar(d))
         return (
           <group key={d}>
-            <Cyl p={p} axis={shaft} r={0.064} len={0.085} kind="steel" seg={36} />
+            <Knob p={p} axis={shaft} r={0.064} len={0.085} kind="steel" ridges={40} />
             <Ring p={p.clone().add(shaft.clone().multiplyScalar(0.0425))} axis={shaft} r={0.064} tube={0.004} kind="alu" />
             <Ring p={p.clone().add(shaft.clone().multiplyScalar(-0.0425))} axis={shaft} r={0.064} tube={0.004} kind="alu" />
+            <Ring p={p.clone().add(shaft.clone().multiplyScalar(0.0435))} axis={shaft} r={0.042} tube={0.0025} kind="black" />
+            <Cyl p={p.clone().add(shaft.clone().multiplyScalar(0.0445))} axis={shaft} r={0.017} len={0.006} kind="black" seg={24} />
+            <Cyl p={p.clone().add(shaft.clone().multiplyScalar(0.0475))} axis={shaft} r={0.007} len={0.006} kind="alu" seg={6} />
           </group>
         )
       })}
@@ -155,7 +201,7 @@ export default function Telescope() {
           <group key={o}>
             <Ring p={p} axis={a} r={rt + 0.008} tube={0.0105} kind="black" />
             <Cyl p={p.clone().add(up.clone().multiplyScalar(rt + 0.02)).add(X.clone().multiplyScalar(0.0))} axis={X} r={0.011} len={0.045} kind="steel" seg={14} />
-            <Cyl p={p.clone().add(up.clone().multiplyScalar(rt + 0.02)).add(X.clone().multiplyScalar(0.03))} axis={X} r={0.017} len={0.012} kind="black" seg={18} />
+            <Knob p={p.clone().add(up.clone().multiplyScalar(rt + 0.02)).add(X.clone().multiplyScalar(0.035))} axis={X} r={0.019} len={0.016} kind="black" ridges={14} />
           </group>
         )
       })}
@@ -186,6 +232,10 @@ export default function Telescope() {
         <mesh position={[0, L / 2 - 0.03, 0]} rotation={[Math.PI / 2, 0, 0]}>
           <torusGeometry args={[rt + 0.0105, 0.004, 10, 72]} />
           <Mat kind="black" />
+        </mesh>
+        <mesh position={[rt + 0.0012, -0.16, 0]} rotation={[0, Math.PI / 2, 0]}>
+          <planeGeometry args={[0.15, 0.047]} />
+          <meshStandardMaterial map={plate()} metalness={0.4} roughness={0.5} envMapIntensity={0.8} />
         </mesh>
         {/* a black band round the tube and a thin accent band */}
         <mesh position={[0, -L / 2 + 0.17, 0]}>
@@ -236,7 +286,7 @@ export default function Telescope() {
       {[-1, 1].map((s) => (
         <group key={s}>
           <Cyl p={F.clone().add(X.clone().multiplyScalar(0.05)).add(a.clone().multiplyScalar(0.062 * s))} axis={a} r={0.011} len={0.026} kind="steel" seg={16} />
-          <Cyl p={F.clone().add(X.clone().multiplyScalar(0.05)).add(a.clone().multiplyScalar(0.085 * s))} axis={a} r={0.02} len={0.016} kind="black" seg={24} />
+          <Knob p={F.clone().add(X.clone().multiplyScalar(0.05)).add(a.clone().multiplyScalar(0.085 * s))} axis={a} r={0.021} len={0.018} kind="black" ridges={20} />
         </group>
       ))}
       <Cyl p={F.clone().add(X.clone().multiplyScalar(0.062)).add(up.clone().multiplyScalar(0.05))} axis={up} r={0.012} len={0.024} kind="steel" seg={14} />

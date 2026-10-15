@@ -1,10 +1,23 @@
-import { useMemo } from 'react'
+import { useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
-import { BufferAttribute, BufferGeometry, DoubleSide, Float32BufferAttribute, Group, IcosahedronGeometry, InstancedMesh, Matrix4, PlaneGeometry, Quaternion, Vector3 } from 'three'
-import { useRef } from 'react'
+import {
+  BufferAttribute,
+  BufferGeometry,
+  CylinderGeometry,
+  DoubleSide,
+  Float32BufferAttribute,
+  Group,
+  IcosahedronGeometry,
+  InstancedMesh,
+  Matrix4,
+  PlaneGeometry,
+  Quaternion,
+  Vector3,
+} from 'three'
+import { makeSurface } from './procTex'
 import { stage } from '../stage'
 
-// small value noise so the hill and the far ridge are not smooth maths
+// value noise for the hill's shape
 function hash(x: number, y: number) {
   const s = Math.sin(x * 127.1 + y * 311.7) * 43758.5453
   return s - Math.floor(s)
@@ -16,9 +29,7 @@ function noise(x: number, y: number) {
   const yf = y - yi
   const u = xf * xf * (3 - 2 * xf)
   const v = yf * yf * (3 - 2 * yf)
-  return (
-    hash(xi, yi) * (1 - u) * (1 - v) + hash(xi + 1, yi) * u * (1 - v) + hash(xi, yi + 1) * (1 - u) * v + hash(xi + 1, yi + 1) * u * v
-  )
+  return hash(xi, yi) * (1 - u) * (1 - v) + hash(xi + 1, yi) * u * (1 - v) + hash(xi, yi + 1) * (1 - u) * v + hash(xi + 1, yi + 1) * u * v
 }
 function fbm(x: number, y: number) {
   let a = 0.5
@@ -31,29 +42,48 @@ function fbm(x: number, y: number) {
   }
   return s
 }
+const hillHeight = (x: number, z: number) => {
+  const r = Math.hypot(x, z)
+  return -Math.pow(r / 64, 2) * 7.5 + (fbm(x * 0.06, z * 0.06) - 0.5) * 2.4 * Math.min(1, r / 6) + (fbm(x * 0.9, z * 0.9) - 0.5) * 0.12 * Math.min(1, r / 4) - 0.02
+}
+function rng32(seed: number) {
+  let a = seed
+  return () => {
+    a = (a + 0x6d2b79f5) | 0
+    let t = Math.imul(a ^ (a >>> 15), 1 | a)
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296
+  }
+}
 
-/** A dark hilltop: the ground the telescope stands on, falling away to a ridge line on the horizon. */
+const PAD_R = 1.5
+
+/** A dark hilltop at night: gravel with real pebble relief, a concrete pad with anchor bolts under the telescope, stones, dry grass,
+ *  and a far ridge for the skyline. Everything is lit by the same low moon as the telescope. */
 export default function Ground() {
   const group = useRef<Group>(null)
+  const stones = useRef<InstancedMesh>(null)
+  const grass = useRef<InstancedMesh>(null)
+  const placed = useRef(false)
+
+  const gravel = useMemo(
+    () => makeSurface({ seed: 11, low: [0.012, 0.012, 0.013], high: [0.055, 0.052, 0.048], pebbles: 14, pebbleWeight: 0.75, blotch: 5, blotchWeight: 0.55, speck: 0.3, normalStrength: 2.0, repeat: 70 }),
+    [],
+  )
+  const concrete = useMemo(
+    () => makeSurface({ seed: 5, low: [0.03, 0.031, 0.033], high: [0.1, 0.1, 0.105], pebbles: 0, blotch: 5, blotchWeight: 0.8, speck: 1.6, normalStrength: 1.2, repeat: 2 }),
+    [],
+  )
 
   const hill = useMemo(() => {
-    const g = new PlaneGeometry(260, 260, 160, 160)
+    const g = new PlaneGeometry(260, 260, 200, 200)
     g.rotateX(-Math.PI / 2)
     const pos = g.getAttribute('position') as BufferAttribute
-    for (let i = 0; i < pos.count; i++) {
-      const x = pos.getX(i)
-      const z = pos.getZ(i)
-      const r = Math.hypot(x, z)
-      const crown = -Math.pow(r / 64, 2) * 7.5
-      const bumps = (fbm(x * 0.06, z * 0.06) - 0.5) * 2.4 * Math.min(1, r / 6)
-      const fine = (fbm(x * 0.9, z * 0.9) - 0.5) * 0.14
-      pos.setY(i, crown + bumps + fine - 0.02)
-    }
+    for (let i = 0; i < pos.count; i++) pos.setY(i, hillHeight(pos.getX(i), pos.getZ(i)))
     g.computeVertexNormals()
     return g
   }, [])
 
-  // the far ridge: a wall whose top edge follows noise, so the sky meets a real skyline
   const ridge = useMemo(() => {
     const N = 360
     const R = 330
@@ -74,61 +104,105 @@ export default function Ground() {
     return g
   }, [])
 
-  // pebbles and stones scattered over the hilltop, so the ground has scale and the moonlight has something to catch
-  const stones = useRef<InstancedMesh>(null)
   const stoneGeo = useMemo(() => {
-    const g = new IcosahedronGeometry(1, 2)
+    const g = new IcosahedronGeometry(1, 3)
     const pos = g.getAttribute('position') as BufferAttribute
     for (let i = 0; i < pos.count; i++) {
       const x = pos.getX(i)
       const y = pos.getY(i)
       const z = pos.getZ(i)
-      const k = 0.78 + 0.34 * noise(x * 2.3 + 11, z * 2.3 + y * 1.7)
-      pos.setXYZ(i, x * k, y * k * 0.62, z * k)
+      const k = 0.74 + 0.4 * noise(x * 1.7 + 11, z * 1.7 + y * 1.3) + 0.08 * noise(x * 7, z * 7 + y * 5)
+      pos.setXYZ(i, x * k, y * k * 0.6, z * k)
     }
     g.computeVertexNormals()
     return g
   }, [])
-  const placed = useRef(false)
+
+  // a single dry grass blade: a thin curved triangle strip, instanced thousands of times
+  const bladeGeo = useMemo(() => {
+    const g = new BufferGeometry()
+    const h = 1
+    const verts = [-0.018, 0, 0, 0.018, 0, 0, -0.012, h * 0.5, 0.02, 0.012, h * 0.5, 0.02, 0, h, 0.09]
+    g.setAttribute('position', new Float32BufferAttribute(verts, 3))
+    g.setIndex([0, 1, 2, 2, 1, 3, 2, 3, 4])
+    g.computeVertexNormals()
+    return g
+  }, [])
+
+  const padEdge = useMemo(() => new CylinderGeometry(PAD_R + 0.03, PAD_R + 0.06, 0.1, 64), [])
+  const padTop = useMemo(() => new CylinderGeometry(PAD_R, PAD_R + 0.02, 0.07, 64), [])
 
   useFrame(() => {
     if (group.current) group.current.visible = stage.p.world === 'outside'
-    const m = stones.current
-    if (m && !placed.current) {
-      placed.current = true
-      const rng = (() => {
-        let a = 1234567
-        return () => {
-          a = (a + 0x6d2b79f5) | 0
-          let t = Math.imul(a ^ (a >>> 15), 1 | a)
-          t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t
-          return ((t ^ (t >>> 14)) >>> 0) / 4294967296
-        }
-      })()
-      const mat = new Matrix4()
-      const q = new Quaternion()
-      for (let i = 0; i < m.count; i++) {
-        const r = 0.9 + Math.pow(rng(), 0.7) * 16
-        const a = rng() * Math.PI * 2
-        const x = Math.cos(a) * r
-        const z = Math.sin(a) * r
-        const size = (0.025 + Math.pow(rng(), 3) * 0.3) * (1 + r * 0.02)
-        const rise = -Math.pow(r / 64, 2) * 7.5 + (fbm(x * 0.06, z * 0.06) - 0.5) * 2.4 * Math.min(1, r / 6)
-        q.setFromAxisAngle(new Vector3(rng(), rng(), rng()).normalize(), rng() * Math.PI * 2)
-        mat.compose(new Vector3(x, rise + size * 0.1, z), q, new Vector3(size * (0.8 + rng() * 0.6), size, size * (0.8 + rng() * 0.6)))
-        m.setMatrixAt(i, mat)
-      }
-      m.instanceMatrix.needsUpdate = true
+    if (placed.current) return
+    const s = stones.current
+    const gr = grass.current
+    if (!s || !gr) return
+    placed.current = true
+    const rng = rng32(1234567)
+    const mat = new Matrix4()
+    const q = new Quaternion()
+    const axis = new Vector3()
+    for (let i = 0; i < s.count; i++) {
+      const bigOnes = i < 60
+      const r = (bigOnes ? 2.4 : 1.7) + Math.pow(rng(), 0.7) * (bigOnes ? 15 : 18)
+      const a = rng() * Math.PI * 2
+      const x = Math.cos(a) * r
+      const z = Math.sin(a) * r
+      const size = bigOnes ? 0.12 + Math.pow(rng(), 2) * 0.5 : 0.018 + Math.pow(rng(), 3) * 0.14
+      axis.set(rng() - 0.5, 1, rng() - 0.5).normalize()
+      q.setFromAxisAngle(axis, rng() * Math.PI * 2)
+      mat.compose(new Vector3(x, hillHeight(x, z) + size * 0.05, z), q, new Vector3(size * (0.8 + rng() * 0.7), size, size * (0.8 + rng() * 0.7)))
+      s.setMatrixAt(i, mat)
     }
+    s.instanceMatrix.needsUpdate = true
+    for (let i = 0; i < gr.count; i++) {
+      const r = 1.8 + Math.pow(rng(), 0.8) * 24
+      const a = rng() * Math.PI * 2
+      const x = Math.cos(a) * r
+      const z = Math.sin(a) * r
+      const hgt = 0.1 + rng() * 0.2
+      q.setFromAxisAngle(new Vector3(0, 1, 0), rng() * Math.PI * 2)
+      mat.compose(new Vector3(x, hillHeight(x, z) - 0.01, z), q, new Vector3(1, hgt, 1))
+      gr.setMatrixAt(i, mat)
+    }
+    gr.instanceMatrix.needsUpdate = true
+  })
+
+  const bolts = [0, 1, 2, 3, 4, 5].map((i) => {
+    const a = (i / 6) * Math.PI * 2 + 0.3
+    return [Math.cos(a) * (PAD_R - 0.16), 0.045, Math.sin(a) * (PAD_R - 0.16)] as [number, number, number]
   })
 
   return (
     <group ref={group}>
       <mesh geometry={hill} receiveShadow>
-        <meshStandardMaterial color="#030304" roughness={1} metalness={0} envMapIntensity={0.05} />
+        <meshStandardMaterial map={gravel.map} normalMap={gravel.normalMap} normalScale={[1.4, 1.4]} roughness={0.92} metalness={0} envMapIntensity={0.15} />
       </mesh>
-      <instancedMesh ref={stones} args={[stoneGeo, undefined, 420]}>
-        <meshStandardMaterial color="#0d0d0f" roughness={0.95} metalness={0} envMapIntensity={0.3} />
+      {/* the concrete pad: weathered slab with a chamfered edge and six anchor bolts */}
+      <mesh geometry={padEdge} position={[0, -0.02, 0]}>
+        <meshStandardMaterial map={concrete.map} normalMap={concrete.normalMap} roughness={0.9} envMapIntensity={0.3} />
+      </mesh>
+      <mesh geometry={padTop} position={[0, 0.0, 0]}>
+        <meshStandardMaterial map={concrete.map} normalMap={concrete.normalMap} normalScale={[0.8, 0.8]} roughness={0.82} envMapIntensity={0.45} />
+      </mesh>
+      {bolts.map((p, i) => (
+        <group key={i} position={p}>
+          <mesh position={[0, 0.012, 0]}>
+            <cylinderGeometry args={[0.022, 0.022, 0.016, 6]} />
+            <meshStandardMaterial color="#7c8087" metalness={1} roughness={0.4} envMapIntensity={1.2} />
+          </mesh>
+          <mesh position={[0, 0.002, 0]}>
+            <cylinderGeometry args={[0.04, 0.04, 0.006, 20]} />
+            <meshStandardMaterial color="#5c5f65" metalness={1} roughness={0.5} envMapIntensity={1} />
+          </mesh>
+        </group>
+      ))}
+      <instancedMesh ref={stones} args={[stoneGeo, undefined, 520]}>
+        <meshStandardMaterial map={gravel.map} normalMap={gravel.normalMap} color="#2a2a2c" roughness={0.9} metalness={0} envMapIntensity={0.3} />
+      </instancedMesh>
+      <instancedMesh ref={grass} args={[bladeGeo, undefined, 2600]}>
+        <meshStandardMaterial color="#14150f" roughness={0.9} side={DoubleSide} envMapIntensity={0.2} />
       </instancedMesh>
       <mesh geometry={ridge}>
         <meshBasicMaterial color="#030304" side={DoubleSide} toneMapped={false} />

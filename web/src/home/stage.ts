@@ -10,6 +10,10 @@ export const stage: {
   black: HTMLElement | null
   lite: boolean
   aspect: number
+  /** free look around the galaxy once the intro has ended */
+  explore: { on: boolean; drag: boolean; yaw: number; pitch: number; zoom: number }
+  /** which screen is drawn: the intro and galaxy, or the plain sky behind the story */
+  mode: 'home' | 'story'
 } = {
   t: 0,
   p: pose(0),
@@ -18,6 +22,8 @@ export const stage: {
   black: null,
   lite: false,
   aspect: 16 / 9,
+  explore: { on: false, drag: false, yaw: 0, pitch: 0, zoom: 1 },
+  mode: 'home',
 }
 
 /** a phone or other weak device gets the same experience at lighter quality */

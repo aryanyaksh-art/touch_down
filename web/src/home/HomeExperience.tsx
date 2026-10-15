@@ -1,6 +1,6 @@
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Canvas } from '@react-three/fiber'
-import { useReducedMotion } from 'motion/react'
+import { AnimatePresence, useReducedMotion } from 'motion/react'
 import Rig from './scene/Rig'
 import Lights from './scene/Lights'
 import Sky from './scene/Sky'
@@ -12,18 +12,23 @@ import { DriftRocks, HeroAsteroid } from './scene/Asteroid'
 import Caption from './ui/Caption'
 import StepButtons from './ui/StepButtons'
 import Loader from './ui/Loader'
+import GalaxyControls from './ui/GalaxyControls'
+import LandingView from './ui/LandingView'
+import StoryIntro from './ui/StoryIntro'
+import { useOrbit } from './useOrbit'
+import { useStatic } from '../data'
 import { CAPTIONS, STEP_COUNT, STEP_SECONDS } from './timeline'
 import { isLiteDevice, stage } from './stage'
 import './home.css'
 
 const asset = (p: string) => `${import.meta.env.BASE_URL}assets/${p}`
+const HASH = /^#\/landing\/(\d+)$/
 
 const STATUS = [
   'A telescope on a dark hill under the night sky, with meteors falling.',
   'The camera pushes in toward the meteor shower.',
   'The camera pulls back to the telescope.',
-  'The camera flies into the eyepiece and an asteroid streaks across the stars.',
-  'The camera follows the asteroid and reveals a spiral galaxy.',
+  'A spiral galaxy. Drag to turn it, scroll to zoom, pick a landing to open, or watch the story.',
 ]
 
 function maxTextureSize() {
@@ -48,10 +53,13 @@ export default function HomeExperience() {
   const reduce = !!useReducedMotion()
   const lite = useMemo(() => isLiteDevice(), [])
   const sharp = useMemo(() => !lite && maxTextureSize() >= 8192, [lite])
+  const data = useStatic()
   const [step, setStep] = useState(0)
   const [playing, setPlaying] = useState(false)
   const [fading, setFading] = useState(false)
   const [ready, setReady] = useState(false)
+  const [screen, setScreen] = useState<'home' | 'story'>('home')
+  const [openSeed, setOpenSeed] = useState<number | null>(null)
   const stepRef = useRef(0)
   const run = useRef<{ stop: () => void; finish: () => void } | null>(null)
   const wrap = useRef<HTMLDivElement>(null)
@@ -106,7 +114,7 @@ export default function HomeExperience() {
         run.current = { stop: () => window.clearTimeout(id), finish: () => (finishTo(to), setFading(false)) }
         return
       }
-      const seconds = STEP_SECONDS[Math.max(from, to) - 1] * (to < from ? 0.7 : 1)
+      const seconds = STEP_SECONDS[Math.max(from, to) - 1] * (to < from ? 0.6 : 1)
       // a plain requestAnimationFrame tween of the timeline value; the camera poses carry their own easing
       const start = performance.now()
       const t0 = stage.t
@@ -126,9 +134,60 @@ export default function HomeExperience() {
   const forward = useCallback(() => go(stepRef.current + 1), [go])
   const back = useCallback(() => go(stepRef.current - 1), [go])
 
+  const onHome = screen === 'home'
+  const atGalaxy = onHome && step === STEP_COUNT && !playing
+  const landing = openSeed === null ? null : (data.landings.find((l) => l.seed === openSeed) ?? null)
+
+  // the galaxy can be turned and zoomed once the intro has finished and nothing sits on top of it
+  useOrbit(wrap, atGalaxy && !landing, reduce)
+
+  const crossfade = useCallback(
+    (change: () => void) => {
+      if (reduce) return change()
+      setFading(true)
+      window.setTimeout(() => {
+        change()
+        window.setTimeout(() => setFading(false), 60)
+      }, 260)
+    },
+    [reduce],
+  )
+
+  const open = useCallback((landingNumber: number) => {
+    setOpenSeed(landingNumber - 1)
+    history.replaceState(null, '', `#/landing/${landingNumber}`)
+  }, [])
+  const close = useCallback(() => {
+    setOpenSeed(null)
+    if (HASH.test(location.hash)) history.replaceState(null, '', location.pathname + location.search)
+  }, [])
+
+  // a link to a landing (#/landing/42) skips the intro and opens it over the galaxy
+  useEffect(() => {
+    const m = HASH.exec(location.hash)
+    if (!m) return
+    stage.t = STEP_COUNT
+    stepRef.current = STEP_COUNT
+    setStep(STEP_COUNT)
+    setOpenSeed(Number(m[1]) - 1)
+  }, [])
+
+  const toStory = useCallback(() => {
+    crossfade(() => {
+      stage.mode = 'story'
+      setScreen('story')
+    })
+  }, [crossfade])
+  const fromStory = useCallback(() => {
+    crossfade(() => {
+      stage.mode = 'home'
+      setScreen('home')
+    })
+  }, [crossfade])
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.metaKey || e.ctrlKey || e.altKey) return
+      if (e.metaKey || e.ctrlKey || e.altKey || !onHome || landing) return
       const tag = (e.target as HTMLElement | null)?.tagName
       if (tag === 'INPUT' || tag === 'TEXTAREA') return
       if (e.key === 'ArrowRight' || e.key === ' ') {
@@ -141,19 +200,19 @@ export default function HomeExperience() {
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [forward, back])
+  }, [forward, back, onHome, landing])
 
   useEffect(() => {
     if (!import.meta.env.DEV) return
     const w = window as unknown as { __home?: unknown }
-    w.__home = { setT: (t: number) => (stage.t = t), go, get t() { return stage.t } }
+    w.__home = { setT: (t: number) => (stage.t = t), go, jump: finishTo, get t() { return stage.t }, toStory, fromStory }
     return () => {
       delete w.__home
     }
-  }, [go])
+  }, [go, finishTo, toStory, fromStory])
 
   return (
-    <main className="home">
+    <main className="home" data-screen={screen} data-explore={atGalaxy}>
       <div className="stage-wrap" ref={wrap}>
         <Canvas
           dpr={lite ? [1, 1.25] : [1, 1.75]}
@@ -178,13 +237,31 @@ export default function HomeExperience() {
       </div>
       <div className="iris-ring" ref={ring} aria-hidden="true" />
       <div className="blackout" ref={black} aria-hidden="true" />
-      <div className="fadeout" data-on={fading} aria-hidden="true" />
 
-      <Caption text={playing ? null : CAPTIONS[step]} reduce={reduce} />
-      <StepButtons canBack={step > 0} canForward={step < STEP_COUNT} playing={playing} onBack={back} onForward={forward} />
+      {onHome && <Caption text={playing ? null : CAPTIONS[step]} reduce={reduce} />}
+      {onHome && !landing && <StepButtons canBack={step > 0} canForward={step < STEP_COUNT} playing={playing} onBack={back} onForward={forward} />}
+      {atGalaxy && !landing && <GalaxyControls count={data.landings.length} disabled={!data.loaded} onOpen={open} onStory={toStory} />}
+      {screen === 'story' && <StoryIntro reduce={reduce} onBack={fromStory} onStart={() => undefined} />}
+
+      <AnimatePresence>
+        {landing && (
+          <LandingView
+            key={landing.seed}
+            point={landing}
+            replayId={data.index.find((e) => e.seed === landing.seed)?.id ?? null}
+            site={data.site}
+            hasPicture={data.pictures.has(landing.seed)}
+            pictureDetector={data.pictureDetector}
+            reduce={reduce}
+            onClose={close}
+          />
+        )}
+      </AnimatePresence>
+
+      <div className="fadeout" data-on={fading} aria-hidden="true" />
       <Loader ready={ready} />
       <p className="sr-only" role="status">
-        {STATUS[step]}
+        {screen === 'story' ? 'The story begins on a plain night sky.' : STATUS[step]}
       </p>
     </main>
   )

@@ -19,7 +19,7 @@ function verdict(star: Star, key: string) {
 }
 
 /** A ruler from the aim point out to 3 m with the landing marked on it. Only the distance is known, so no direction is drawn. */
-function Ruler({ err }: { err: number }) {
+export function Ruler({ err }: { err: number }) {
   const max = 3
   const w = 560
   const x = (v: number) => 20 + (Math.min(v, max) / max) * (w - 40)

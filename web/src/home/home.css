@@ -117,3 +117,90 @@ html.home-lock body {
 @media (prefers-reduced-motion: reduce) {
   .step-btn, .loader, .fadeout { transition-duration: 1ms; }
 }
+
+/* ---- galaxy screen: landing picker bottom left, "Watch the story" bottom right ---- */
+.home[data-explore='true'] .stage-wrap { cursor: grab; }
+.gbar {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: max(26px, calc(env(safe-area-inset-bottom) + 18px));
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 0 max(20px, 3vw);
+  pointer-events: none;
+}
+.gbar > * { pointer-events: auto; }
+.gbar[data-disabled='true'] { opacity: 0.4; pointer-events: none; }
+.picker {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 48px;
+  padding: 0 8px 0 18px;
+  border-radius: 999px;
+  border: 1px solid var(--home-line);
+  background: rgba(3, 3, 4, 0.5);
+  font-size: 13px;
+  color: var(--home-dim);
+}
+.picker label { white-space: nowrap; }
+.slider { width: clamp(120px, 16vw, 240px); accent-color: #e4e4e7; }
+.seed-box {
+  width: 84px;
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid rgba(244, 244, 245, 0.35);
+  padding: 4px 2px;
+  color: var(--home-ink);
+  font: 400 16px var(--home-mono);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+.seed-box::-webkit-outer-spin-button, .seed-box::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.seed-box::placeholder { color: var(--home-dim); font-size: 13px; }
+.seed-box:focus-visible { outline: none; border-bottom-color: var(--home-ink); }
+.open-btn, .story-btn {
+  height: 34px;
+  padding: 0 16px;
+  border-radius: 999px;
+  font: 400 13px var(--home-sans);
+  color: var(--home-ink);
+  background: transparent;
+  border: 1px solid var(--home-line);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: border-color 160ms var(--home-ease-out), background-color 160ms var(--home-ease-out), color 160ms var(--home-ease-out), transform 120ms var(--home-ease-out), opacity 200ms var(--home-ease-out);
+}
+.story-btn { height: 48px; padding: 0 22px; background: rgba(3, 3, 4, 0.5); }
+.open-btn:disabled { opacity: 0.35; cursor: default; }
+.open-btn:not(:disabled) { background: var(--home-ink); color: #08080a; border-color: var(--home-ink); }
+.open-btn:active:not(:disabled), .story-btn:active { transform: scale(0.96); }
+.open-btn:focus-visible, .story-btn:focus-visible { outline: 2px solid var(--home-ink); outline-offset: 3px; }
+@media (hover: hover) and (pointer: fine) {
+  .story-btn:hover { border-color: var(--home-ink); background: var(--home-ink); color: #08080a; }
+}
+@media (max-width: 759px) {
+  .gbar { bottom: calc(max(28px, env(safe-area-inset-bottom) + 20px) + 62px); flex-direction: column-reverse; align-items: stretch; gap: 10px; }
+  .picker { justify-content: space-between; }
+  .slider { flex: 1; width: auto; min-width: 70px; }
+  .story-btn { justify-content: center; }
+}
+
+/* ---- the story's opening: a plain sky, a title and one circle ---- */
+.story-intro { position: absolute; inset: 0; display: grid; place-content: center; justify-items: center; gap: 28px; text-align: center; padding: 0 20px; }
+.story-intro h1 { margin: 0; font-weight: 300; font-size: clamp(34px, 6vw, 84px); letter-spacing: -0.03em; line-height: 1.05; text-shadow: 0 1px 28px rgba(0, 0, 0, 0.55); }
+.step-btn.big { width: 76px; height: 76px; }
+.back-link { position: absolute; left: max(20px, 3vw); bottom: max(26px, calc(env(safe-area-inset-bottom) + 18px)); display: inline-flex; align-items: center; gap: 8px; height: 40px; padding: 0 14px; border-radius: 999px; background: transparent; border: 1px solid transparent; color: var(--home-dim); font: 400 13px var(--home-sans); cursor: pointer; transition: color 160ms var(--home-ease-out), border-color 160ms var(--home-ease-out); }
+.back-link:focus-visible { outline: 2px solid var(--home-ink); outline-offset: 3px; }
+@media (hover: hover) and (pointer: fine) { .back-link:hover { color: var(--home-ink); border-color: var(--home-line); } }
+
+/* the previous site styled headings with its own display face; here everything is Geist */
+.home h1, .home h2, .home h3, .home .big { font-family: var(--home-sans); }
