@@ -204,3 +204,32 @@ html.home-lock body {
 
 /* the previous site styled headings with its own display face; here everything is Geist */
 .home h1, .home h2, .home h3, .home .big { font-family: var(--home-sans); }
+
+/* ---- the story scenes ---- */
+.flash { position: absolute; inset: 0; background: #fff; pointer-events: none; opacity: 0; }
+.story-top { position: absolute; top: 0; left: 0; right: 0; display: flex; align-items: center; justify-content: space-between; padding: max(18px, env(safe-area-inset-top)) max(20px, 3vw) 0; pointer-events: none; }
+.story-top > * { pointer-events: auto; }
+.back-link.top { position: static; height: 38px; }
+.story-part { display: flex; align-items: center; gap: 14px; font: 400 12px var(--home-mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--home-dim); }
+.story-dots { display: inline-flex; gap: 6px; }
+.story-dots i { width: 6px; height: 6px; border-radius: 50%; border: 1px solid var(--home-dim); transition: background-color 300ms var(--home-ease-out), border-color 300ms var(--home-ease-out); }
+.story-dots i[data-past='true'] { background: var(--home-dim); }
+.story-dots i[data-on='true'] { background: var(--home-ink); border-color: var(--home-ink); }
+.caption-wrap.low { top: auto; bottom: calc(max(28px, env(safe-area-inset-bottom) + 20px) + 76px); }
+.story-cap { text-align: center; }
+.story-title { margin: 0 0 10px; font: 400 12px var(--home-mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--home-dim); text-shadow: 0 1px 14px rgba(0, 0, 0, 0.7); }
+.caption.small { font-size: clamp(22px, 2.6vw, 38px); max-width: 28ch; margin: 0 auto; }
+.real-btn {
+  position: absolute; right: max(20px, 3vw); bottom: max(28px, calc(env(safe-area-inset-bottom) + 20px)); transform: translateY(-4px);
+  height: 48px; padding: 0 20px; border-radius: 999px; border: 1px solid var(--home-line); background: rgba(3, 3, 4, 0.55); color: var(--home-ink);
+  font: 400 13px var(--home-sans); display: inline-flex; align-items: center; gap: 8px; cursor: pointer; touch-action: manipulation;
+  transition: border-color 160ms var(--home-ease-out), background-color 160ms var(--home-ease-out), color 160ms var(--home-ease-out);
+}
+.real-btn:active { scale: 0.97; }
+.real-btn:focus-visible { outline: 2px solid var(--home-ink); outline-offset: 3px; }
+@media (hover: hover) and (pointer: fine) { .real-btn:hover { background: var(--home-ink); color: #08080a; border-color: var(--home-ink); } }
+@media (max-width: 759px) {
+  .real-btn { left: 50%; right: auto; transform: translateX(-50%); bottom: calc(max(28px, env(safe-area-inset-bottom) + 20px) + 64px); height: 40px; }
+  .story-part span:first-child { display: none; }
+  .caption.small { max-width: 24ch; }
+}

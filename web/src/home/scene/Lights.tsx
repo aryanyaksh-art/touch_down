@@ -1,6 +1,7 @@
-import { useEffect } from 'react'
-import { useThree } from '@react-three/fiber'
-import { BackSide, Color, DoubleSide, Mesh, MeshBasicMaterial, PMREMGenerator, PlaneGeometry, Scene, SphereGeometry } from 'three'
+import { useEffect, useRef } from 'react'
+import { useFrame, useThree } from '@react-three/fiber'
+import { stage } from '../stage'
+import { BackSide, Group, Color, DoubleSide, Mesh, MeshBasicMaterial, PMREMGenerator, PlaneGeometry, Scene, SphereGeometry } from 'three'
 
 /** Moonlight and a small studio-free reflection environment, so the metal and glass of the telescope have something to reflect. */
 export default function Lights() {
@@ -30,11 +31,17 @@ export default function Lights() {
     }
   }, [gl, scene])
 
+  const moon = useRef<Group>(null)
+  // the story has one sun of its own, so the moonlight is switched off there
+  useFrame(() => {
+    if (moon.current) moon.current.visible = stage.mode === 'home'
+  })
+
   return (
-    <>
+    <group ref={moon}>
       <directionalLight position={[-6, 7, 5]} intensity={2.6} color="#e6ebff" />
       <directionalLight position={[7, 4, -8]} intensity={1.0} color="#b8c4ee" />
       <hemisphereLight args={['#14151a', '#030304', 0.4]} />
-    </>
+    </group>
   )
 }

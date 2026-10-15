@@ -4,7 +4,7 @@ import { ArrowLeft, Play } from '@phosphor-icons/react'
 const EASE_OUT = [0.23, 1, 0.32, 1] as const
 
 /** The story opens on a plain night sky: a title and one circle to start. */
-export default function StoryIntro({ onStart, onBack, reduce }: { onStart: () => void; onBack: () => void; reduce: boolean }) {
+export default function StoryIntro({ onStart, onBack, reduce, ready }: { onStart: () => void; onBack: () => void; reduce: boolean; ready: boolean }) {
   return (
     <div className="story-intro">
       <motion.h1
@@ -18,9 +18,10 @@ export default function StoryIntro({ onStart, onBack, reduce }: { onStart: () =>
         type="button"
         className="step-btn big"
         onClick={onStart}
+        disabled={!ready}
         aria-label="Start the story"
         initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
+        animate={{ opacity: ready ? 1 : 0.35 }}
         transition={{ duration: 0.7, ease: EASE_OUT, delay: 0.7 }}
       >
         <Play size={26} weight="fill" />

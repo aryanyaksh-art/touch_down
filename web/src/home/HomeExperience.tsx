@@ -1,5 +1,6 @@
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Canvas } from '@react-three/fiber'
+import { Canvas, useLoader } from '@react-three/fiber'
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
 import { AnimatePresence, useReducedMotion } from 'motion/react'
 import Rig from './scene/Rig'
 import Lights from './scene/Lights'
@@ -15,6 +16,12 @@ import Loader from './ui/Loader'
 import GalaxyControls from './ui/GalaxyControls'
 import LandingView from './ui/LandingView'
 import StoryIntro from './ui/StoryIntro'
+import StoryUI from './story/StoryUI'
+import StoryWorld, { PROBE_URL, TERRAIN_URL } from './story/StoryWorld'
+import { useStory } from './story/useStory'
+import { SCENES } from './story/script'
+import { buildStars, type View } from '../lib/model'
+import { pickExamples } from '../lib/tour'
 import { useOrbit } from './useOrbit'
 import { useStatic } from '../data'
 import { CAPTIONS, STEP_COUNT, STEP_SECONDS } from './timeline'
@@ -60,21 +67,27 @@ export default function HomeExperience() {
   const [ready, setReady] = useState(false)
   const [screen, setScreen] = useState<'home' | 'story'>('home')
   const [openSeed, setOpenSeed] = useState<number | null>(null)
+  const [openView, setOpenView] = useState<View | undefined>(undefined)
+  const [storyReady, setStoryReady] = useState(false)
   const stepRef = useRef(0)
   const run = useRef<{ stop: () => void; finish: () => void } | null>(null)
   const wrap = useRef<HTMLDivElement>(null)
   const ring = useRef<HTMLDivElement>(null)
   const black = useRef<HTMLDivElement>(null)
+  const flash = useRef<HTMLDivElement>(null)
+  const story = useStory(reduce)
+  const examples = useMemo(() => pickExamples(buildStars(data.landings, data.index)), [data.landings, data.index])
 
   useEffect(() => {
     stage.wrap = wrap.current
     stage.ring = ring.current
     stage.black = black.current
+    stage.flash = flash.current
     stage.lite = lite
     document.documentElement.classList.add('home-lock')
     return () => {
       document.documentElement.classList.remove('home-lock')
-      stage.wrap = stage.ring = stage.black = null
+      stage.wrap = stage.ring = stage.black = stage.flash = null
     }
   }, [lite])
 
@@ -153,7 +166,8 @@ export default function HomeExperience() {
     [reduce],
   )
 
-  const open = useCallback((landingNumber: number) => {
+  const open = useCallback((landingNumber: number, view?: View) => {
+    setOpenView(view)
     setOpenSeed(landingNumber - 1)
     history.replaceState(null, '', `#/landing/${landingNumber}`)
   }, [])
@@ -180,10 +194,24 @@ export default function HomeExperience() {
   }, [crossfade])
   const fromStory = useCallback(() => {
     crossfade(() => {
+      story.reset()
       stage.mode = 'home'
       setScreen('home')
     })
-  }, [crossfade])
+  }, [crossfade, story])
+  const startStory = useCallback(() => crossfade(() => story.start()), [crossfade, story])
+  const seeReal = useCallback(() => {
+    const ex = SCENES[story.scene].example
+    const e = ex ? examples[ex] : null
+    if (e) open(e.seed + 1, e.view)
+  }, [story.scene, examples, open])
+
+  // warm the story's two models while the visitor is looking at the galaxy, so "Watch the story" starts at once
+  useEffect(() => {
+    if (!atGalaxy) return
+    useLoader.preload(GLTFLoader, TERRAIN_URL)
+    useLoader.preload(GLTFLoader, PROBE_URL)
+  }, [atGalaxy])
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -205,17 +233,18 @@ export default function HomeExperience() {
   useEffect(() => {
     if (!import.meta.env.DEV) return
     const w = window as unknown as { __home?: unknown }
-    w.__home = { setT: (t: number) => (stage.t = t), go, jump: finishTo, get t() { return stage.t }, toStory, fromStory }
+    w.__home = { setT: (t: number) => (stage.t = t), go, jump: finishTo, get t() { return stage.t }, toStory, fromStory, story, startStory, storyAt: story.debugSet, stage }
     return () => {
       delete w.__home
     }
-  }, [go, finishTo, toStory, fromStory])
+  }, [go, finishTo, toStory, fromStory, story, startStory])
 
   return (
     <main className="home" data-screen={screen} data-explore={atGalaxy}>
       <div className="stage-wrap" ref={wrap}>
         <Canvas
           dpr={lite ? [1, 1.25] : [1, 1.75]}
+          shadows="soft"
           camera={{ fov: 42, near: 0.05, far: 6000, position: [0, 1.22, 5.5] }}
           gl={{ antialias: true, powerPreference: 'high-performance' }}
           aria-hidden="true"
@@ -231,17 +260,38 @@ export default function HomeExperience() {
             <HeroAsteroid url={asset('models/bennu.glb')} />
             <DriftRocks url={asset('models/bennu.glb')} />
             <Galaxy lite={lite} />
+            {screen === 'story' && (
+              <Suspense fallback={null}>
+                <StoryWorld onReady={() => setStoryReady(true)} />
+              </Suspense>
+            )}
             <ReadySignal onReady={() => setReady(true)} />
           </Suspense>
         </Canvas>
       </div>
       <div className="iris-ring" ref={ring} aria-hidden="true" />
       <div className="blackout" ref={black} aria-hidden="true" />
+      <div className="flash" ref={flash} aria-hidden="true" />
 
       {onHome && <Caption text={playing ? null : CAPTIONS[step]} reduce={reduce} />}
       {onHome && !landing && <StepButtons canBack={step > 0} canForward={step < STEP_COUNT} playing={playing} onBack={back} onForward={forward} />}
       {atGalaxy && !landing && <GalaxyControls count={data.landings.length} disabled={!data.loaded} onOpen={open} onStory={toStory} />}
-      {screen === 'story' && <StoryIntro reduce={reduce} onBack={fromStory} onStart={() => undefined} />}
+      {screen === 'story' && !story.started && <StoryIntro reduce={reduce} ready={storyReady} onBack={fromStory} onStart={startStory} />}
+      {screen === 'story' && story.started && !landing && (
+        <StoryUI
+          scene={story.scene}
+          line={story.line}
+          playing={story.playing}
+          done={story.done}
+          reduce={reduce}
+          canSeeReal={!!(SCENES[story.scene].example && examples[SCENES[story.scene].example!])}
+          onPrev={story.prev}
+          onNext={story.next}
+          onReplay={story.replay}
+          onExit={fromStory}
+          onSeeReal={seeReal}
+        />
+      )}
 
       <AnimatePresence>
         {landing && (
@@ -250,6 +300,7 @@ export default function HomeExperience() {
             point={landing}
             replayId={data.index.find((e) => e.seed === landing.seed)?.id ?? null}
             site={data.site}
+            initialView={openView}
             hasPicture={data.pictures.has(landing.seed)}
             pictureDetector={data.pictureDetector}
             reduce={reduce}

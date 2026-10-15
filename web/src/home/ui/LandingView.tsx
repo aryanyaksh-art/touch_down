@@ -31,15 +31,16 @@ interface Props {
   replayId: string | null
   site: Site | null
   hasPicture: boolean
+  initialView?: View
   pictureDetector: boolean
   reduce: boolean
   onClose: () => void
 }
 
 /** One landing, full screen over the real night sky: the picture the spacecraft looked at on one side, the decision and numbers on the other. */
-export default function LandingView({ point, replayId, site, hasPicture, pictureDetector, reduce, onClose }: Props) {
+export default function LandingView({ point, replayId, site, hasPicture, initialView, pictureDetector, reduce, onClose }: Props) {
   const closeRef = useRef<HTMLButtonElement>(null)
-  const [view, setView] = useState<View>({ prior: 'complete', detector: false })
+  const [view, setView] = useState<View>(initialView ?? { prior: 'complete', detector: false })
   const [replayTitle, setReplayTitle] = useState<string | null>(null)
   const key = viewKey(view)
   const outcome = outcomeOf(point, key)

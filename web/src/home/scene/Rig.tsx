@@ -11,6 +11,7 @@ const qb = new Quaternion()
 const vA = new Vector3()
 const vB = new Vector3()
 
+let once = 0
 export default function Rig() {
   useFrame(({ camera, clock, size }) => {
     stage.aspect = size.width / size.height
@@ -21,6 +22,19 @@ export default function Rig() {
     cam.position.set(p.camPos[0] + Math.sin(clock.elapsedTime * 0.31) * sway, p.camPos[1] + Math.sin(clock.elapsedTime * 0.23) * sway, p.camPos[2])
     cam.up.set(p.up[0], p.up[1], p.up[2])
     cam.lookAt(p.camLook[0], p.camLook[1], p.camLook[2])
+    // inside a story scene the 3D scene computes the camera itself (see story/StoryWorld.tsx)
+    const sp = stage.mode === 'story' && stage.story.started ? stage.storyPose : null
+    if (sp) {
+      cam.position.set(sp.cam[0], sp.cam[1], sp.cam[2])
+      cam.up.set(0, 1, 0)
+      cam.lookAt(sp.look[0], sp.look[1], sp.look[2])
+      // the caption and controls take the bottom of the screen, so the picture sits a little high
+      cam.setViewOffset(size.width, size.height, 0, size.height * 0.08, size.width, size.height)
+      if (Math.abs(cam.fov - sp.fov) > 1e-4) {
+        cam.fov = sp.fov
+        cam.updateProjectionMatrix()
+      }
+    } else if (cam.view?.enabled) cam.clearViewOffset()
     // after the intro the visitor can orbit the galaxy: yaw about its axis, pitch about the horizontal, zoom along the view
     if (stage.mode === 'home' && stage.explore.on && stage.t >= 2.999) {
       const e = stage.explore
@@ -35,7 +49,7 @@ export default function Rig() {
       cam.up.copy(N)
       cam.lookAt(GC)
     }
-    if (Math.abs(cam.fov - p.fov) > 1e-4) {
+    if (!sp && Math.abs(cam.fov - p.fov) > 1e-4) {
       cam.fov = p.fov
       cam.updateProjectionMatrix()
     }
@@ -50,7 +64,7 @@ export default function Rig() {
         stage.ring.style.width = stage.ring.style.height = `${(r * 2).toFixed(1)}px`
       }
     }
-    if (stage.black) stage.black.style.opacity = p.blackout.toFixed(3)
+    if (stage.black && !sp) stage.black.style.opacity = p.blackout.toFixed(3)
   })
   return null
 }

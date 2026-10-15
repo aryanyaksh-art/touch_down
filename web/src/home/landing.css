@@ -18,7 +18,7 @@
   position: fixed;
   inset: 0;
   z-index: 20;
-  background: rgba(3, 3, 4, 0.7);
+  background: rgba(3, 3, 4, 0.86);
   color: var(--ink);
   font: 400 14px/1.6 var(--display);
   -webkit-font-smoothing: antialiased;
