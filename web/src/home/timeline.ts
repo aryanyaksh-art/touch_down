@@ -73,7 +73,7 @@ export const GALAXY_NORMAL: V3 = (() => {
   return [v[0] / n, v[1] / n, v[2] / n]
 })()
 /** where the camera ends up: on the near side of the galaxy, looking at its disc from about 50 degrees off its axis */
-function galaxyEndCamera(): V3 {
+function galaxyEndCamera(distScale = 1): V3 {
   const N = GALAXY_NORMAL
   const toViewer: V3 = [-GALAXY_DIR[0], -GALAXY_DIR[1], -GALAXY_DIR[2]]
   const d = toViewer[0] * N[0] + toViewer[1] * N[1] + toViewer[2] * N[2]
@@ -82,10 +82,9 @@ function galaxyEndCamera(): V3 {
   const a = 0.86
   const dir: V3 = [N[0] * Math.cos(a) + (w[0] / wl) * Math.sin(a), N[1] * Math.cos(a) + (w[1] / wl) * Math.sin(a), N[2] * Math.cos(a) + (w[2] / wl) * Math.sin(a)]
   const gc: V3 = [GALAXY_DIR[0] * GALAXY_DIST, GALAXY_DIR[1] * GALAXY_DIST, GALAXY_DIR[2] * GALAXY_DIST]
-  const dist = 470
+  const dist = 470 * distScale
   return [gc[0] + dir[0] * dist, gc[1] + dir[1] * dist, gc[2] + dir[2] * dist]
 }
-export const GALAXY_END_CAMERA = galaxyEndCamera()
 
 export interface Pose {
   camPos: V3
@@ -106,20 +105,27 @@ export interface Pose {
   galaxyOpacity: number
 }
 
-const P0 = { pos: [0, 1.15, 3.8] as V3, look: [0, 1.52, 0] as V3, fov: 46 }
+const P0base = { pos: [0, 1.15, 3.8] as V3, look: [0, 1.52, 0] as V3, fov: 46 }
 const P1 = { pos: [0.1, 1.05, 3.4] as V3, look: [-0.5 + 0.1, 1.05 + 6, 3.4 - 5] as V3, fov: 34 }
 
 const sameNaN = (v: number) => (Number.isFinite(v) ? v : 0)
 
-export function pose(tIn: number): Pose {
+/** on a tall screen the camera backs off so the whole telescope still fits across the narrow width */
+export function framing(aspect: number): number {
+  return lerp(1, 1.7, clamp((1.25 - aspect) / 0.75))
+}
+
+export function pose(tIn: number, aspect = 16 / 9): Pose {
   const t = clamp(tIn, 0, STEP_COUNT)
+  const k0 = framing(aspect)
+  const P0 = { ...P0base, pos: lerp3(P0base.look, P0base.pos, k0) }
   const base: Pose = {
     camPos: P0.pos,
     camLook: P0.look,
     fov: P0.fov,
     world: 'outside',
     telescopeYaw: TELESCOPE.yawStart,
-    meteorRate: 0.25,
+    meteorRate: 0.5,
     meteorsOn: true,
     iris: null,
     blackout: 0,
@@ -136,7 +142,7 @@ export function pose(tIn: number): Pose {
       camPos: lerp3(P0.pos, P1.pos, k),
       camLook: lerp3(P0.look, P1.look, k),
       fov: lerp(P0.fov, P1.fov, k),
-      meteorRate: lerp(0.25, 0.8, k),
+      meteorRate: lerp(0.5, 0.95, k),
     }
   }
 
@@ -168,7 +174,7 @@ export function pose(tIn: number): Pose {
         camLook,
         fov,
         telescopeYaw: yaw,
-        meteorRate: lerp(0.25, 0.1, approach),
+        meteorRate: lerp(0.5, 0.15, approach),
         blackout: smooth(seg(u, 0.55, 0.6)),
       }
     }
@@ -204,7 +210,7 @@ export function pose(tIn: number): Pose {
     lerp(-34, gc[2] * 0.55, chase),
   ]
   const approach = easeInOut(seg(v, 0.35, 1))
-  const camPos = lerp3([0, 0, 0], GALAXY_END_CAMERA, approach)
+  const camPos = lerp3([0, 0, 0], galaxyEndCamera(lerp(1, 1.9, clamp((1.25 - aspect) / 0.75))), approach)
   const lookFollow: V3 = [lerp(-14, astPos[0], smooth(v / 0.5)), lerp(2.4, astPos[1], smooth(v / 0.5)), lerp(-34, astPos[2], smooth(v / 0.5))]
   const camLook = lerp3(lookFollow, gc, smooth(seg(v, 0.3, 0.8)))
   const rock = 1 - smooth(seg(v, 0.55, 0.85))

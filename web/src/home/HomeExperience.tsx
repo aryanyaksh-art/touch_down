@@ -1,7 +1,6 @@
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Canvas } from '@react-three/fiber'
 import { useReducedMotion } from 'motion/react'
-import { DefaultLoadingManager } from 'three'
 import Rig from './scene/Rig'
 import Lights from './scene/Lights'
 import Sky from './scene/Sky'
@@ -36,6 +35,15 @@ function maxTextureSize() {
   }
 }
 
+function ReadySignal({ onReady }: { onReady: () => void }) {
+  useEffect(() => {
+    // two frames after mount, so the first picture is already on screen when the loader lifts
+    const id = requestAnimationFrame(() => requestAnimationFrame(onReady))
+    return () => cancelAnimationFrame(id)
+  }, [onReady])
+  return null
+}
+
 export default function HomeExperience() {
   const reduce = !!useReducedMotion()
   const lite = useMemo(() => isLiteDevice(), [])
@@ -62,15 +70,11 @@ export default function HomeExperience() {
     }
   }, [lite])
 
-  // loaded when every texture and model has arrived (or after a generous wait, so a failed file never traps the visitor)
+  // ready when every texture and model has arrived (the signal mounts last, so only after everything above it has resolved); after
+  // a generous wait the page opens anyway, so a failed file never traps the visitor
   useEffect(() => {
-    const prev = DefaultLoadingManager.onLoad
-    DefaultLoadingManager.onLoad = () => setReady(true)
-    const t = window.setTimeout(() => setReady(true), 20000)
-    return () => {
-      DefaultLoadingManager.onLoad = prev
-      window.clearTimeout(t)
-    }
+    const t = window.setTimeout(() => setReady(true), 25000)
+    return () => window.clearTimeout(t)
   }, [])
 
   const finishTo = useCallback((to: number) => {
@@ -164,10 +168,11 @@ export default function HomeExperience() {
             <Sky url={asset('sky/starmap_4k.webp')} hiUrl={sharp ? asset('sky/starmap_8k.webp') : undefined} />
             <Ground />
             <Telescope />
-            <Meteors count={lite ? 44 : 78} />
+            <Meteors count={lite ? 52 : 100} />
             <HeroAsteroid url={asset('models/bennu.glb')} />
             <DriftRocks url={asset('models/bennu.glb')} />
             <Galaxy lite={lite} />
+            <ReadySignal onReady={() => setReady(true)} />
           </Suspense>
         </Canvas>
       </div>

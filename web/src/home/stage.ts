@@ -9,6 +9,7 @@ export const stage: {
   ring: HTMLElement | null
   black: HTMLElement | null
   lite: boolean
+  aspect: number
 } = {
   t: 0,
   p: pose(0),
@@ -16,6 +17,7 @@ export const stage: {
   ring: null,
   black: null,
   lite: false,
+  aspect: 16 / 9,
 }
 
 /** a phone or other weak device gets the same experience at lighter quality */

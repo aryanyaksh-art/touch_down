@@ -5,11 +5,15 @@ import { DefaultLoadingManager } from 'three'
 export default function Loader({ ready }: { ready: boolean }) {
   const [p, setP] = useState(0)
   useEffect(() => {
-    const prev = { start: DefaultLoadingManager.onStart, progress: DefaultLoadingManager.onProgress }
-    DefaultLoadingManager.onProgress = (_url, loaded, total) => setP(total ? loaded / total : 0)
+    // assets arrive one after another, so the manager's own fraction jumps about; keep it moving forward and never claim to be done
+    const prev = DefaultLoadingManager.onProgress
+    let best = 0
+    DefaultLoadingManager.onProgress = (_url, loaded, total) => {
+      best = Math.max(best, total ? loaded / (total + 1) : 0)
+      setP(Math.min(0.92, best))
+    }
     return () => {
-      DefaultLoadingManager.onStart = prev.start
-      DefaultLoadingManager.onProgress = prev.progress
+      DefaultLoadingManager.onProgress = prev
     }
   }, [])
   const r = 22

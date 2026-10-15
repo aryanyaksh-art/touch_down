@@ -1,6 +1,6 @@
 import { useMemo, useRef } from 'react'
-import { useFrame } from '@react-three/fiber'
-import { AdditiveBlending, BufferAttribute, InstancedBufferAttribute, InstancedBufferGeometry, ShaderMaterial, Vector3 } from 'three'
+import { useFrame, useThree } from '@react-three/fiber'
+import { AdditiveBlending, BufferAttribute, DoubleSide, InstancedBufferAttribute, InstancedBufferGeometry, ShaderMaterial, Vector3 } from 'three'
 import { RADIANT } from '../timeline'
 import { stage } from '../stage'
 
@@ -11,7 +11,7 @@ import { stage } from '../stage'
 const VERT = /* glsl */ `
 attribute vec2 aCorner;
 attribute float aPhase, aPeriod, aLife, aThresh, aSeedA, aSeedB, aTint, aSpeed, aLen;
-uniform float uTime, uRate, uBurst, uAspect, uWidth;
+uniform float uTime, uRate, uBurst, uAspect, uWidth, uForce;
 uniform vec3 uRadiant;
 varying float vAlpha;
 varying float vTint;
@@ -22,6 +22,7 @@ void main() {
   float tt = uTime + aPhase * aPeriod;
   float cyc = floor(tt / aPeriod);
   float age = tt - cyc * aPeriod;
+  if (uForce > 0.5) age = 0.5 * aLife;
   float k = age / aLife;
   float on = step(aThresh, uRate * (1.0 + 2.2 * uBurst));
   if (k > 1.0 || on < 0.5) { hide(); return; }
@@ -86,7 +87,7 @@ export default function Meteors({ count }: { count: number }) {
     const mk = (f: () => number) => new InstancedBufferAttribute(Float32Array.from({ length: count }, f), 1)
     g.setAttribute('aPhase', mk(() => Math.random()))
     g.setAttribute('aPeriod', mk(() => rnd(9, 24)))
-    g.setAttribute('aLife', mk(() => rnd(0.55, 1.25)))
+    g.setAttribute('aLife', mk(() => rnd(0.7, 1.5)))
     g.setAttribute('aThresh', mk(() => Math.random()))
     g.setAttribute('aSeedA', mk(() => Math.random() * 100))
     g.setAttribute('aSeedB', mk(() => Math.random() * 100))
@@ -99,6 +100,7 @@ export default function Meteors({ count }: { count: number }) {
       fragmentShader: FRAG,
       transparent: true,
       depthWrite: false,
+      side: DoubleSide, // the ribbon's winding depends on which way it points on screen
       blending: AdditiveBlending,
       uniforms: {
         uTime: { value: 0 },
@@ -106,6 +108,7 @@ export default function Meteors({ count }: { count: number }) {
         uBurst: { value: 0 },
         uAspect: { value: 1.6 },
         uWidth: { value: 0.003 },
+        uForce: { value: 0 },
         uRadiant: { value: new Vector3(...RADIANT) },
       },
     })
@@ -113,6 +116,8 @@ export default function Meteors({ count }: { count: number }) {
   }, [count])
 
   const nextBurst = useRef(6)
+  const gl = useThree((st) => st.gl)
+  if (import.meta.env.DEV) (window as unknown as { __meteor?: unknown }).__meteor = { material, gl }
   useFrame(({ clock, size }) => {
     const t = clock.elapsedTime
     const p = stage.p

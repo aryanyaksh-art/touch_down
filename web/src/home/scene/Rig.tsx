@@ -6,7 +6,8 @@ import { stage } from '../stage'
 /** Turns the timeline into a camera pose every frame, and drives the round eyepiece view and the cut to black. */
 export default function Rig() {
   useFrame(({ camera, clock, size }) => {
-    const p = pose(stage.t)
+    stage.aspect = size.width / size.height
+    const p = pose(stage.t, stage.aspect)
     stage.p = p
     const cam = camera as PerspectiveCamera
     const sway = p.world === 'outside' ? 0.012 : 0

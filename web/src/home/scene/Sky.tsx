@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef } from 'react'
 import { useFrame, useLoader } from '@react-three/fiber'
-import { BackSide, Color, Mesh, MeshBasicMaterial, SRGBColorSpace, TextureLoader } from 'three'
+import { BackSide, Color, LoadingManager, Mesh, MeshBasicMaterial, SRGBColorSpace, TextureLoader } from 'three'
 import { stage } from '../stage'
 
 /** NASA SVS Deep Star Maps (Tycho-2 and Gaia based): a real all-sky map on a sphere around the camera, drifting very slowly. */
@@ -17,7 +17,7 @@ export default function Sky({ url, hiUrl }: { url: string; hiUrl?: string }) {
   useEffect(() => {
     if (!hiUrl) return
     let live = true
-    new TextureLoader().load(hiUrl, (hi) => {
+    new TextureLoader(new LoadingManager()).load(hiUrl, (hi) => {
       if (!live) return
       hi.colorSpace = SRGBColorSpace
       hi.anisotropy = 4

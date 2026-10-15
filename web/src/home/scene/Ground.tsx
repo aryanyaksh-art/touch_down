@@ -89,10 +89,6 @@ export default function Ground() {
     g.computeVertexNormals()
     return g
   }, [])
-  useMemo(() => {
-    // filled on the first frame the mesh exists
-    return null
-  }, [])
   const placed = useRef(false)
 
   useFrame(() => {
