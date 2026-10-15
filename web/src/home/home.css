@@ -115,7 +115,7 @@ html.home-lock body {
 .sr-only { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
 
 @media (prefers-reduced-motion: reduce) {
-  .step-btn, .loader, .fadeout { transition-duration: 1ms; }
+  .step-btn, .loader, .fadeout, .real-btn, .story-dots i, .back-link { transition-duration: 1ms; }
 }
 
 /* ---- galaxy screen: landing picker bottom left, "Watch the story" bottom right ---- */

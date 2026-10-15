@@ -3,7 +3,7 @@ import { stage } from '../stage'
 import { SCENES } from './script'
 
 /** Plays the seven story scenes one press at a time. A second press while a scene is playing jumps to its end. */
-export function useStory(reduce: boolean) {
+export function useStory(reduce: boolean, fade?: (change: () => void) => void) {
   const [started, setStarted] = useState(false)
   const [scene, setScene] = useState(0)
   const [playing, setPlaying] = useState(false)
@@ -64,17 +64,20 @@ export function useStory(reduce: boolean) {
     play(0)
   }, [play])
 
+  // changing scene dips through black, so the probe and overlays never pop in view
+  const change = useCallback((i: number) => (fade ? fade(() => play(i)) : play(i)), [fade, play])
+
   const next = useCallback(() => {
     if (playing) return skip()
-    if (sceneRef.current < SCENES.length - 1) play(sceneRef.current + 1)
-  }, [playing, play, skip])
+    if (sceneRef.current < SCENES.length - 1) change(sceneRef.current + 1)
+  }, [playing, change, skip])
 
   const prev = useCallback(() => {
     if (playing) return skip()
-    if (sceneRef.current > 0) play(sceneRef.current - 1)
-  }, [playing, play, skip])
+    if (sceneRef.current > 0) change(sceneRef.current - 1)
+  }, [playing, change, skip])
 
-  const replay = useCallback(() => play(sceneRef.current), [play])
+  const replay = useCallback(() => change(sceneRef.current), [change])
 
   const reset = useCallback(() => {
     stop()
@@ -82,6 +85,8 @@ export function useStory(reduce: boolean) {
     stage.story.u = 0
     stage.story.scene = 0
     stage.storyPose = null
+    if (stage.flash) stage.flash.style.opacity = '0'
+    if (stage.black) stage.black.style.opacity = '0'
     sceneRef.current = 0
     setStarted(false)
     setPlaying(false)

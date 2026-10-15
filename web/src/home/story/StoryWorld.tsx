@@ -222,7 +222,7 @@ export default function StoryWorld({ onReady }: { onReady: () => void }) {
     }
     let cam = fromTo(cur, cur, 0)
     if (from.current) {
-      const k = smooth(clamp01((now - from.current.at) / 1.3))
+      const k = smooth(clamp01((now - from.current.at) / 0.8))
       cam = fromTo({ ...cur, ...from.current.p } as StoryPose, cur, k)
       if (k >= 1) from.current = null
     }

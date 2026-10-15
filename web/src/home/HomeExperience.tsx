@@ -75,7 +75,8 @@ export default function HomeExperience() {
   const ring = useRef<HTMLDivElement>(null)
   const black = useRef<HTMLDivElement>(null)
   const flash = useRef<HTMLDivElement>(null)
-  const story = useStory(reduce)
+  const fadeRef = useRef<(change: () => void) => void>(null)
+  const story = useStory(reduce, useCallback((change: () => void) => (fadeRef.current ? fadeRef.current(change) : change()), []))
   const examples = useMemo(() => pickExamples(buildStars(data.landings, data.index)), [data.landings, data.index])
 
   useEffect(() => {
@@ -165,6 +166,8 @@ export default function HomeExperience() {
     },
     [reduce],
   )
+
+  fadeRef.current = crossfade
 
   const open = useCallback((landingNumber: number, view?: View) => {
     setOpenView(view)
