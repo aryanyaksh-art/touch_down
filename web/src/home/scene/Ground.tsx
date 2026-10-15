@@ -58,16 +58,15 @@ function rng32(seed: number) {
 
 const PAD_R = 1.5
 
-/** A dark hilltop at night: gravel with real pebble relief, a concrete pad with anchor bolts under the telescope, stones, dry grass,
+/** A dark hilltop at night: gravel with real pebble relief, a concrete pad with anchor bolts under the telescope, stones,
  *  and a far ridge for the skyline. Everything is lit by the same low moon as the telescope. */
 export default function Ground() {
   const group = useRef<Group>(null)
   const stones = useRef<InstancedMesh>(null)
-  const grass = useRef<InstancedMesh>(null)
   const placed = useRef(false)
 
   const gravel = useMemo(
-    () => makeSurface({ seed: 11, low: [0.012, 0.012, 0.013], high: [0.055, 0.052, 0.048], pebbles: 14, pebbleWeight: 0.75, blotch: 5, blotchWeight: 0.55, speck: 0.3, normalStrength: 2.0, repeat: 70 }),
+    () => makeSurface({ seed: 11, low: [0.012, 0.012, 0.013], high: [0.075, 0.072, 0.068], pebbles: 22, pebbleWeight: 0.85, blotch: 5, blotchWeight: 0.5, speck: 0.4, normalStrength: 3.0, repeat: 90 }),
     [],
   )
   const concrete = useMemo(
@@ -118,17 +117,6 @@ export default function Ground() {
     return g
   }, [])
 
-  // a single dry grass blade: a thin curved triangle strip, instanced thousands of times
-  const bladeGeo = useMemo(() => {
-    const g = new BufferGeometry()
-    const h = 1
-    const verts = [-0.018, 0, 0, 0.018, 0, 0, -0.012, h * 0.5, 0.02, 0.012, h * 0.5, 0.02, 0, h, 0.09]
-    g.setAttribute('position', new Float32BufferAttribute(verts, 3))
-    g.setIndex([0, 1, 2, 2, 1, 3, 2, 3, 4])
-    g.computeVertexNormals()
-    return g
-  }, [])
-
   const padEdge = useMemo(() => new CylinderGeometry(PAD_R + 0.03, PAD_R + 0.06, 0.1, 64), [])
   const padTop = useMemo(() => new CylinderGeometry(PAD_R, PAD_R + 0.02, 0.07, 64), [])
 
@@ -136,37 +124,25 @@ export default function Ground() {
     if (group.current) group.current.visible = stage.p.world === 'outside'
     if (placed.current) return
     const s = stones.current
-    const gr = grass.current
-    if (!s || !gr) return
+    if (!s) return
     placed.current = true
     const rng = rng32(1234567)
     const mat = new Matrix4()
     const q = new Quaternion()
     const axis = new Vector3()
     for (let i = 0; i < s.count; i++) {
-      const bigOnes = i < 60
-      const r = (bigOnes ? 2.4 : 1.7) + Math.pow(rng(), 0.7) * (bigOnes ? 15 : 18)
+      const bigOnes = i < 70
+      const r = (bigOnes ? 2.4 : 1.7) + Math.pow(rng(), i % 3 === 0 ? 0.5 : 0.8) * (bigOnes ? 15 : 22)
       const a = rng() * Math.PI * 2
       const x = Math.cos(a) * r
       const z = Math.sin(a) * r
-      const size = bigOnes ? 0.12 + Math.pow(rng(), 2) * 0.5 : 0.018 + Math.pow(rng(), 3) * 0.14
+      const size = bigOnes ? 0.12 + Math.pow(rng(), 2) * 0.5 : 0.02 + Math.pow(rng(), 2.2) * 0.17
       axis.set(rng() - 0.5, 1, rng() - 0.5).normalize()
       q.setFromAxisAngle(axis, rng() * Math.PI * 2)
       mat.compose(new Vector3(x, hillHeight(x, z) + size * 0.05, z), q, new Vector3(size * (0.8 + rng() * 0.7), size, size * (0.8 + rng() * 0.7)))
       s.setMatrixAt(i, mat)
     }
     s.instanceMatrix.needsUpdate = true
-    for (let i = 0; i < gr.count; i++) {
-      const r = 1.8 + Math.pow(rng(), 0.8) * 24
-      const a = rng() * Math.PI * 2
-      const x = Math.cos(a) * r
-      const z = Math.sin(a) * r
-      const hgt = 0.1 + rng() * 0.2
-      q.setFromAxisAngle(new Vector3(0, 1, 0), rng() * Math.PI * 2)
-      mat.compose(new Vector3(x, hillHeight(x, z) - 0.01, z), q, new Vector3(1, hgt, 1))
-      gr.setMatrixAt(i, mat)
-    }
-    gr.instanceMatrix.needsUpdate = true
   })
 
   const bolts = [0, 1, 2, 3, 4, 5].map((i) => {
@@ -177,7 +153,7 @@ export default function Ground() {
   return (
     <group ref={group}>
       <mesh geometry={hill} receiveShadow>
-        <meshStandardMaterial map={gravel.map} normalMap={gravel.normalMap} normalScale={[1.4, 1.4]} roughness={0.92} metalness={0} envMapIntensity={0.15} />
+        <meshStandardMaterial map={gravel.map} normalMap={gravel.normalMap} normalScale={[1.8, 1.8]} roughness={0.95} metalness={0} envMapIntensity={0.15} />
       </mesh>
       {/* the concrete pad: weathered slab with a chamfered edge and six anchor bolts */}
       <mesh geometry={padEdge} position={[0, -0.02, 0]}>
@@ -198,11 +174,8 @@ export default function Ground() {
           </mesh>
         </group>
       ))}
-      <instancedMesh ref={stones} args={[stoneGeo, undefined, 520]}>
+      <instancedMesh ref={stones} args={[stoneGeo, undefined, 1800]}>
         <meshStandardMaterial map={gravel.map} normalMap={gravel.normalMap} color="#2a2a2c" roughness={0.9} metalness={0} envMapIntensity={0.3} />
-      </instancedMesh>
-      <instancedMesh ref={grass} args={[bladeGeo, undefined, 2600]}>
-        <meshStandardMaterial color="#14150f" roughness={0.9} side={DoubleSide} envMapIntensity={0.2} />
       </instancedMesh>
       <mesh geometry={ridge}>
         <meshBasicMaterial color="#030304" side={DoubleSide} toneMapped={false} />

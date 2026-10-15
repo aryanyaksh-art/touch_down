@@ -4,8 +4,8 @@
 //   step 1  t 0..1  push in toward the meteor radiant            (caption: "Let's take a look")
 //   step 2  t 1..2  pull back to the telescope view
 //   step 3  t 2..3  one unbroken shot: the telescope turns, the camera flies into the eyepiece, the round view opens on the stars, an
-//                   asteroid streaks across, the camera swings round and chases it, the galaxy fades in dead centre, the camera
-//                   dollies in, and the asteroid zooms past the galaxy and leaves the frame
+//                   asteroid streaks across, the asteroid zooms past and streaks away, the camera turns to watch it shrink beside the
+//                   galaxy, which fades in dead centre, then the camera dollies in
 
 export type V3 = [number, number, number]
 
@@ -148,7 +148,9 @@ function toCam(pos: V3, look: V3, up: V3, p: V3): V3 {
 // ---- step 3, in phases of u (0..1 over the step)
 const U_CUT = 0.255 // the cut from the outside shot to the round eyepiece view
 const U_ASTEROID = 0.3 // the asteroid enters
-const U_CROSSED = 0.45 // it has crossed the inside view
+const U_AWAY = 0.56 // it has streaked away to the far side of the galaxy
+const U_ASTEROID_END = 0.9
+const AST_START: V3 = [28, 7, -54]
 const INSIDE_LOOK: V3 = norm([0.18, 0.2, -1])
 
 function galaxyCentre(): V3 {
@@ -158,13 +160,14 @@ function galaxyCentre(): V3 {
 /** the camera once we are inside the star field (u >= U_CUT): it swings toward the galaxy, then dollies in to the end pose */
 function insideCamera(u: number, aspect: number) {
   const gc = galaxyCentre()
-  const sweep = easeInOut(seg(u, 0.4, 0.72))
-  const dolly = easeInOut(seg(u, 0.56, 1))
+  // the camera stays at the eyepiece while the asteroid zooms by (it only turns), then dollies in to the galaxy
+  const sweep = easeInOut(seg(u, 0.31, 0.52))
+  const dolly = easeInOut(seg(u, 0.64, 1))
   const endPos = galaxyEndCamera(lerp(1, 1.9, clamp((1.25 - aspect) / 0.75)))
   const pos = lerp3([0, 0, 0], endPos, dolly)
   const ahead: V3 = mul3(INSIDE_LOOK, 120)
   const look = lerp3(ahead, gc, sweep)
-  const upBlend = smooth(seg(u, 0.66, 1))
+  const upBlend = smooth(seg(u, 0.7, 1))
   const up = norm(lerp3(UP, GALAXY_NORMAL, upBlend))
   const fov = lerp(lerp(34, 50, easeInOut(seg(u, 0.265, 0.37))), 52, dolly)
   return { pos, look, up, fov }
@@ -238,27 +241,24 @@ export function pose(tIn: number, aspect = 16 / 9): Pose {
   // ---- inside: the round eyepiece view opens, an asteroid crosses it, the camera chases it and the galaxy appears
   const cam = insideCamera(u, aspect)
   const open = easeInOut(seg(u, 0.265, 0.37))
-  const showGalaxy = smooth(seg(u, 0.5, 0.82))
+  const showGalaxy = smooth(seg(u, 0.44, 0.72))
 
-  // the asteroid: a fast crossing in world space, then it stays ahead of the camera and flies off past the galaxy
+  // the asteroid: it zooms past very fast, then streaks away into the distance past the galaxy, shrinking until it is a speck beside it.
+  // It lives in world space and the camera stays where it is, only turning to follow it, so the shrinking can actually be seen.
   let ast: Pose['asteroid'] = { on: false, pos: [0, 0, 0], scale: 3, spin: u * 14 }
-  if (u >= U_ASTEROID && u < 0.97) {
-    const crossing = easeInOut(seg(u, U_ASTEROID, U_CROSSED))
-    const worldA: V3 = [lerp(28, -14, crossing), lerp(7, 2.4, crossing), lerp(-54, -34, crossing)]
-    if (u < U_CROSSED) {
-      ast = { on: true, pos: worldA, scale: 3.2, spin: u * 14 }
-    } else {
-      // from here on it is placed relative to the camera, so it cannot swallow the galaxy: it hangs ahead, slightly right of the
-      // galaxy's centre, then accelerates leftward across the galaxy and out of the frame
-      const c0 = insideCamera(U_CROSSED, aspect)
-      const rel0 = toCam(c0.pos, c0.look, c0.up, [-14, 2.4, -34])
-      const hold: V3 = [10, 3, 110]
-      const exit: V3 = [-300, 34, 200]
-      const toHold = easeInOut(seg(u, U_CROSSED, 0.62))
-      const out = Math.pow(seg(u, 0.78, 0.96), 2.2)
-      const rel = lerp3(lerp3(rel0, hold, toHold), exit, out)
-      ast = { on: true, pos: fromCam(cam.pos, cam.look, cam.up, rel), scale: lerp(3.2, 2.6, toHold), spin: u * 14 }
+  if (u >= U_ASTEROID && u < U_ASTEROID_END) {
+    const s = seg(u, U_ASTEROID, U_AWAY)
+    const gc = galaxyCentre()
+    const far: V3 = add3(mul3(gc, 1.25), [-120, 40, 0])
+    const p = Math.pow(s, 1.4)
+    let pos = lerp3(AST_START, far, p)
+    if (s >= 1) {
+      // after that it keeps drifting on, slowly, and fades to nothing
+      const d = norm(sub3(far, AST_START))
+      pos = add3(far, mul3(d, (u - U_AWAY) * 700))
     }
+    const scale = lerp(3.2, 18, Math.pow(s, 1.2)) * (1 - smooth(seg(u, 0.8, U_ASTEROID_END)))
+    ast = { on: true, pos, scale, spin: u * 30 }
   }
 
   return {
@@ -267,12 +267,12 @@ export function pose(tIn: number, aspect = 16 / 9): Pose {
     camLook: cam.look,
     fov: cam.fov,
     up: cam.up,
-    world: u < 0.5 ? 'inside' : 'galaxy',
+    world: u < 0.44 ? 'inside' : 'galaxy',
     telescopeYaw: TELESCOPE.yawEyepiece,
     meteorsOn: false,
     iris: lerp(0.2, 1.25, open),
     blackout: 1 - smooth(seg(u, U_CUT, 0.285)),
-    skyGain: lerp(4.2, 2.4, easeInOut(seg(u, 0.56, 1))),
+    skyGain: lerp(4.2, 2.4, easeInOut(seg(u, 0.64, 1))),
     asteroid: ast,
     galaxyOpacity: showGalaxy,
   }

@@ -11,7 +11,6 @@ const qb = new Quaternion()
 const vA = new Vector3()
 const vB = new Vector3()
 
-let once = 0
 export default function Rig() {
   useFrame(({ camera, clock, size }) => {
     stage.aspect = size.width / size.height
