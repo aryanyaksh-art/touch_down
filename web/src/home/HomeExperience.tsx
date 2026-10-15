@@ -230,6 +230,30 @@ export default function HomeExperience() {
     return () => window.removeEventListener('keydown', onKey)
   }, [forward, back, onHome, landing])
 
+  // keys inside the story: right and space go on, left goes back, escape leaves
+  useEffect(() => {
+    if (screen !== 'story' || landing) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.metaKey || e.ctrlKey || e.altKey) return
+      const tag = (e.target as HTMLElement | null)?.tagName
+      if (tag === 'INPUT' || tag === 'TEXTAREA') return
+      if (e.key === 'Escape') {
+        e.preventDefault()
+        fromStory()
+      } else if (!story.started) {
+        return
+      } else if (e.key === 'ArrowRight' || e.key === ' ') {
+        e.preventDefault()
+        story.next()
+      } else if (e.key === 'ArrowLeft') {
+        e.preventDefault()
+        story.prev()
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [screen, landing, story, fromStory])
+
   useEffect(() => {
     if (!import.meta.env.DEV) return
     const w = window as unknown as { __home?: unknown }
@@ -309,6 +333,9 @@ export default function HomeExperience() {
         )}
       </AnimatePresence>
 
+      {((atGalaxy && !landing) || (screen === 'story' && !story.started)) && (
+        <p className="credits">Sky: NASA SVS Deep Star Maps. Bennu: NASA SVS and the OSIRIS-REx team. Probe: NASA VTAD.</p>
+      )}
       <div className="fadeout" data-on={fading} aria-hidden="true" />
       <Loader ready={ready} />
       <p className="sr-only" role="status">

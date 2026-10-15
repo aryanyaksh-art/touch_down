@@ -72,7 +72,7 @@ Details and every assumption: [docs/method.md](docs/method.md).
 
 ## Try it
 
-**The site** (nothing to install): <https://aryanyaksh-art.github.io/touch_down/>. Scroll from a telescope into a galaxy of 1,000 landings, one star each; open a star for its picture and decision.
+**The site** (nothing to install): <https://aryanyaksh-art.github.io/touch_down/>. Click from a telescope under a meteor shower into a galaxy of 1,000 landings, one star each; open a star for its picture and decision, or watch the story: a 3D walk through how the probe sees hazards and lands, on real Bennu terrain.
 
 **The code** (Python 3.12+, [uv](https://docs.astral.sh/uv/)):
 
@@ -109,7 +109,7 @@ touchdown/     the Python package
 configs/       physical constants and thresholds, each with its source
 scripts/       data download, figures, demos, Kaggle runners, analysis helpers
 notebooks/     Colab (01-04, 06) and Kaggle (05, 07-18) notebooks
-web/           the website: telescope zoom, galaxy of landings, replays
+web/           the website: 3D telescope and galaxy of landings, 3D story, replays
 docs/          method, validation, references, extension, reviewer Q&A, figures
 tests/         pytest suite (runs in CI)
 ```
@@ -147,7 +147,7 @@ tests/         pytest suite (runs in CI)
 
 ## Data and credits
 
-Terrain: NASA OSIRIS-REx Laser Altimeter shape models of Bennu, via the [NASA Scientific Visualization Studio](https://svs.gsfc.nasa.gov/5069). Method after the OSIRIS-REx Natural Feature Tracking papers (Olds et al.) and the mission's public TAG material. Rendering with [Blender](https://www.blender.org/). This is an independent educational recreation, not affiliated with NASA.
+Terrain: NASA OSIRIS-REx Laser Altimeter shape models of Bennu, via the [NASA Scientific Visualization Studio](https://svs.gsfc.nasa.gov/5069). Method after the OSIRIS-REx Natural Feature Tracking papers (Olds et al.) and the mission's public TAG material. Probe model: NASA Visualization Technology Applications and Development (VTAD). Sky: NASA SVS Deep Star Maps. Rendering with [Blender](https://www.blender.org/); the website uses three.js. This is an independent educational recreation, not affiliated with NASA.
 
 ## License
 

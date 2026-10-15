@@ -36,4 +36,12 @@ Agreed with the user in a 62-question round. This is the brief the build follows
 - `starmap_8k.jpg` (7.2 MB), `starmap_4k.jpg` (2.3 MB): NASA SVS 3895 Deep Star Maps, celestial coordinates.
 - `bennu_global_v20.glb` (60.6 MB): NASA SVS 5069, global Bennu, 3.4 M polygons.
 - `bennu_nightingale.glb` (77.3 MB): NASA SVS 5069, Nightingale sample site tile, 4.3 M polygons.
-- All public domain; credit "NASA's Scientific Visualization Studio; data NASA/University of Arizona/CSA/York University/MDA". Still to fetch with the user's OK when the story phase starts: the OSIRIS-REx model.
+- All public domain; credit "NASA's Scientific Visualization Studio; data NASA/University of Arizona/CSA/York University/MDA". - `Osiris_Rex.glb` (4.3 MB, NASA VTAD, from science.nasa.gov/resource/osiris-rex-3d-model), fetched with the user's OK on 2026-10-15.
+
+## Built (status 2026-10-15)
+- Home: telescope, meteors, eyepiece, asteroid chase, orbitable galaxy with the landing picker, landing view, story intro. Story: seven 3D scenes in `web/src/home/story/`:
+  - `terrain.ts` (pure): height field rasterised from the decimated Nightingale tile (`public/assets/models/nightingale_site.glb`, 281k triangles, 25 m radius, metres, +y up), a per-cell hazard map (rock more than 0.28 m above the fitted local plane, or slope above 24 degrees; story thresholds, not the mission's), and a deterministic choice of the patch and the three landing sites.
+  - `script.ts` (pure): `storyPose(scene, u)` gives camera, probe, sun elevation and overlay state for every scene.
+  - `StoryWorld.tsx`: renders it (one hard sun with shadow map, real OSIRIS-REx model with the sampler head as its origin, draped white grid/outline/ring overlays from `draped.ts`, camera cone, thruster flames, dust). `useStory.ts` plays one scene per press (a second press skips to the end), `StoryUI.tsx` is the controls.
+- "See a real one" opens the landing view of a real landing picked from the data (`lib/tour.ts`); the story stays where it was.
+- Rebuild the story ground with the scratch script that decimates `bennu_nightingale.glb` (area-weighted mean face normal gives up; crop to 25 m; meshopt simplify): not committed, ask for it if the mesh has to change.

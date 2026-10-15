@@ -233,3 +233,7 @@ html.home-lock body {
   .story-part span:first-child { display: none; }
   .caption.small { max-width: 24ch; }
 }
+
+/* the one credits line */
+.credits { position: absolute; left: 50%; transform: translateX(-50%); bottom: max(10px, env(safe-area-inset-bottom)); margin: 0; font: 400 11px var(--home-mono); letter-spacing: 0.02em; color: rgba(161, 161, 170, 0.7); white-space: nowrap; pointer-events: none; }
+@media (max-width: 1099px) { .credits { display: none; } }

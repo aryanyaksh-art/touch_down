@@ -29,7 +29,7 @@ export default function Rig() {
       cam.up.set(0, 1, 0)
       cam.lookAt(sp.look[0], sp.look[1], sp.look[2])
       // the caption and controls take the bottom of the screen, so the picture sits a little high
-      cam.setViewOffset(size.width, size.height, 0, size.height * 0.08, size.width, size.height)
+      cam.setViewOffset(size.width, size.height, 0, size.height * 0.12, size.width, size.height)
       if (Math.abs(cam.fov - sp.fov) > 1e-4) {
         cam.fov = sp.fov
         cam.updateProjectionMatrix()
