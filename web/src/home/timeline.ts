@@ -151,6 +151,7 @@ const U_ASTEROID = 0.3 // the asteroid enters
 const U_AWAY = 0.56 // it has streaked away to the far side of the galaxy
 const U_ASTEROID_END = 0.9
 const AST_START: V3 = [28, 7, -54]
+const AST_BEND: V3 = [-70, 10, -60]
 const INSIDE_LOOK: V3 = norm([0.18, 0.2, -1])
 
 function galaxyCentre(): V3 {
@@ -241,23 +242,24 @@ export function pose(tIn: number, aspect = 16 / 9): Pose {
   // ---- inside: the round eyepiece view opens, an asteroid crosses it, the camera chases it and the galaxy appears
   const cam = insideCamera(u, aspect)
   const open = easeInOut(seg(u, 0.265, 0.37))
-  const showGalaxy = smooth(seg(u, 0.44, 0.72))
+  const showGalaxy = smooth(seg(u, 0.38, 0.62))
 
   // the asteroid: it zooms past very fast, then streaks away into the distance past the galaxy, shrinking until it is a speck beside it.
   // It lives in world space and the camera stays where it is, only turning to follow it, so the shrinking can actually be seen.
   let ast: Pose['asteroid'] = { on: false, pos: [0, 0, 0], scale: 3, spin: u * 14 }
   if (u >= U_ASTEROID && u < U_ASTEROID_END) {
     const s = seg(u, U_ASTEROID, U_AWAY)
-    const gc = galaxyCentre()
-    const far: V3 = add3(mul3(gc, 1.25), [-120, 40, 0])
+    // it swings past the camera, then recedes past the galaxy on its upper right (well clear of its disc, never through it)
+    const far: V3 = mul3(norm([-0.44, 0.242, -0.865]), 1500)
     const p = Math.pow(s, 1.4)
-    let pos = lerp3(AST_START, far, p)
+    const q = 1 - p
+    let pos: V3 = add3(add3(mul3(AST_START, q * q), mul3(AST_BEND, 2 * q * p)), mul3(far, p * p))
     if (s >= 1) {
       // after that it keeps drifting on, slowly, and fades to nothing
-      const d = norm(sub3(far, AST_START))
-      pos = add3(far, mul3(d, (u - U_AWAY) * 700))
+      pos = add3(far, mul3(norm(sub3(far, AST_BEND)), (u - U_AWAY) * 900))
     }
-    const scale = lerp(3.2, 18, Math.pow(s, 1.2)) * (1 - smooth(seg(u, 0.8, U_ASTEROID_END)))
+    // far away it must be a lot smaller: no compensating growth, just enough size to stay a speck
+    const scale = lerp(3.2, 5, s) * (1 - smooth(seg(u, 0.8, U_ASTEROID_END)))
     ast = { on: true, pos, scale, spin: u * 30 }
   }
 
@@ -267,7 +269,7 @@ export function pose(tIn: number, aspect = 16 / 9): Pose {
     camLook: cam.look,
     fov: cam.fov,
     up: cam.up,
-    world: u < 0.44 ? 'inside' : 'galaxy',
+    world: u < 0.38 ? 'inside' : 'galaxy',
     telescopeYaw: TELESCOPE.yawEyepiece,
     meteorsOn: false,
     iris: lerp(0.2, 1.25, open),
