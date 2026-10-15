@@ -59,7 +59,7 @@ html.home-lock body {
   padding: 0 max(20px, 5vw);
   pointer-events: none;
 }
-.caption {
+.caption-wrap .caption {
   margin: 0;
   max-width: 20ch;
   text-align: center;
@@ -218,7 +218,7 @@ html.home-lock body {
 .caption-wrap.low { top: auto; bottom: calc(max(28px, env(safe-area-inset-bottom) + 20px) + 76px); }
 .story-cap { text-align: center; }
 .story-title { margin: 0 0 10px; font: 400 12px var(--home-mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--home-dim); text-shadow: 0 1px 14px rgba(0, 0, 0, 0.7); }
-.caption.small { font-size: clamp(22px, 2.6vw, 38px); max-width: 28ch; margin: 0 auto; }
+.caption-wrap .caption.small { font-size: clamp(22px, 2.6vw, 38px); max-width: 28ch; margin: 0 auto; }
 .real-btn {
   position: absolute; right: max(20px, 3vw); bottom: max(28px, calc(env(safe-area-inset-bottom) + 20px)); transform: translateY(-4px);
   height: 48px; padding: 0 20px; border-radius: 999px; border: 1px solid var(--home-line); background: rgba(3, 3, 4, 0.55); color: var(--home-ink);
@@ -231,7 +231,7 @@ html.home-lock body {
 @media (max-width: 759px) {
   .real-btn { left: 50%; right: auto; transform: translateX(-50%); bottom: calc(max(28px, env(safe-area-inset-bottom) + 20px) + 64px); height: 40px; }
   .story-part span:first-child { display: none; }
-  .caption.small { max-width: 24ch; }
+  .caption-wrap .caption.small { max-width: 24ch; }
 }
 
 /* the one credits line */
