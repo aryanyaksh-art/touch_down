@@ -2,6 +2,7 @@ import { useRef, useState } from 'react'
 import { dataUrl } from '../data'
 import { classify, usePixels } from './pixels'
 import ZoomPan from './ZoomPan'
+import InfoTip from './InfoTip'
 
 type Layer = 'raw' | 'truth' | 'detector'
 
@@ -44,11 +45,14 @@ export default function PictureView({ seed, detector }: { seed: number; detector
   return (
     <div className="panel picture">
       <div className="panel-title">
-        <span>Picture analysed</span>
-        <span className="seg" role="group" aria-label="Analysis layer">
-          <button type="button" className={layer === 'raw' ? 'on' : ''} onClick={() => setLayer('raw')}>raw</button>
-          <button type="button" className={layer === 'truth' ? 'on' : ''} onClick={() => setLayer('truth')}>ground truth</button>
-          {detector && <button type="button" className={layer === 'detector' ? 'on' : ''} onClick={() => setLayer('detector')}>detector</button>}
+        <span>Picture analysed<InfoTip term="picture" /></span>
+        <span className="lv-toggle">
+          <span className="seg" role="group" aria-label="Analysis layer">
+            <button type="button" className={layer === 'raw' ? 'on' : ''} onClick={() => setLayer('raw')}>raw</button>
+            <button type="button" className={layer === 'truth' ? 'on' : ''} onClick={() => setLayer('truth')}>ground truth</button>
+            {detector && <button type="button" className={layer === 'detector' ? 'on' : ''} onClick={() => setLayer('detector')}>detector</button>}
+          </span>
+          <InfoTip term="layers" />
         </span>
       </div>
       <div className="frame" onPointerMove={onMove} onPointerUp={(e) => e.pointerType === 'touch' && onTap(e)} onPointerLeave={() => setHover(null)}>

@@ -4,6 +4,7 @@ import CameraView from './CameraView'
 import DecisionBanner from './DecisionBanner'
 import SiteMap from './SiteMap'
 import Timeline from './Timeline'
+import InfoTip from './InfoTip'
 import { useReplay } from '../data'
 import type { Replay, Site } from '../types'
 
@@ -68,15 +69,27 @@ export default function ReplayViewer({ id, site, onLoaded }: Props) {
       </div>
       <Timeline replay={replay} k={k} setK={setK} playing={playing} setPlaying={setPlaying} />
       <div className="options">
-        <label><input type="checkbox" checked={showLabels} onChange={(e) => setShowLabels(e.target.checked)} /> hazard labels</label>
-        <label><input type="checkbox" checked={showFeatures} onChange={(e) => setShowFeatures(e.target.checked)} /> landmark matches</label>
-        <span className="seg" role="group" aria-label="Ground hazard map">
-          <button type="button" className={prior === 'complete' ? 'on' : ''} onClick={() => setPrior('complete')}>complete map</button>
-          <button type="button" className={prior === 'stale' ? 'on' : ''} onClick={() => setPrior('stale')}>stale map</button>
+        <span className="lv-toggle">
+          <label><input type="checkbox" checked={showLabels} onChange={(e) => setShowLabels(e.target.checked)} /> hazard labels</label>
+          <InfoTip term="hazardLabels" />
         </span>
-        <span className="seg" role="group" aria-label="Neural hazard detector">
-          <button type="button" className={!detectorOn ? 'on' : ''} onClick={() => setDetector(false)}>baseline</button>
-          <button type="button" className={detectorOn ? 'on' : ''} disabled={!hasDetector} title={hasDetector ? '' : 'detector results are not in this replay'} onClick={() => setDetector(true)}>+ detector</button>
+        <span className="lv-toggle">
+          <label><input type="checkbox" checked={showFeatures} onChange={(e) => setShowFeatures(e.target.checked)} /> landmark matches</label>
+          <InfoTip term="landmarks" />
+        </span>
+        <span className="lv-toggle">
+          <span className="seg" role="group" aria-label="Ground hazard map">
+            <button type="button" className={prior === 'complete' ? 'on' : ''} onClick={() => setPrior('complete')}>complete map</button>
+            <button type="button" className={prior === 'stale' ? 'on' : ''} onClick={() => setPrior('stale')}>stale map</button>
+          </span>
+          <InfoTip term="hazardMap" />
+        </span>
+        <span className="lv-toggle">
+          <span className="seg" role="group" aria-label="Neural hazard detector">
+            <button type="button" className={!detectorOn ? 'on' : ''} onClick={() => setDetector(false)}>baseline</button>
+            <button type="button" className={detectorOn ? 'on' : ''} disabled={!hasDetector} title={hasDetector ? '' : 'detector results are not in this replay'} onClick={() => setDetector(true)}>+ detector</button>
+          </span>
+          <InfoTip term="baseline" />
         </span>
       </div>
       <DecisionBanner replay={replay} k={k} prior={prior} detector={detectorOn} />

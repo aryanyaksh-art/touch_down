@@ -2,6 +2,7 @@ import { useRef, useState } from 'react'
 import { dataUrl } from '../data'
 import { classify, usePixels } from './pixels'
 import ZoomPan from './ZoomPan'
+import InfoTip from './InfoTip'
 import type { Frame, Replay } from '../types'
 
 interface Props {
@@ -54,7 +55,7 @@ export default function CameraView({ replay, k, showLabels, showFeatures, useNN 
   return (
     <div className="panel camera">
       <div className="panel-title">
-        <span>Picture analysed</span>
+        <span>Picture analysed<InfoTip term="cameraFrame" /></span>
         <span className="muted">
           {showLabels ? (analysed ? 'detector output' : 'ground-truth hazard labels') : 'raw frame'}
         </span>

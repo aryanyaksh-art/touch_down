@@ -4,7 +4,8 @@ import { X } from '@phosphor-icons/react'
 import PictureView from '../../components/PictureView'
 import ReplayViewer from '../../components/ReplayViewer'
 import CountText from '../../components/CountText'
-import { Ruler } from '../../components/DataCard'
+import InfoTip from '../../components/InfoTip'
+import { Ruler } from '../../components/Ruler'
 import { OUTCOME_LABEL, landingNo, outcomeOf, viewKey, type View } from '../../lib/model'
 import type { LandingPoint, Replay, Site } from '../../types'
 import '../landing.css'
@@ -52,7 +53,8 @@ export default function LandingView({ point, replayId, site, hasPicture, initial
     const prev = document.activeElement as HTMLElement | null
     closeRef.current?.focus({ preventScroll: true })
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
+      // an open (i) card takes the Escape first (it closes itself); the second press closes the view
+      if (e.key === 'Escape' && !document.querySelector('[data-tip-open]')) {
         e.stopPropagation()
         onClose()
       }
@@ -94,35 +96,41 @@ export default function LandingView({ point, replayId, site, hasPicture, initial
             <div className="lv-left">{hasPicture ? <PictureView seed={point.seed} detector={pictureDetector} /> : <p className="muted">There is no picture for this landing.</p>}</div>
             <div className="lv-right">
               <div className="lv-toggles">
-                <span className="seg" role="group" aria-label="Ground hazard map">
-                  <button type="button" className={view.prior === 'complete' ? 'on' : ''} onClick={() => setView({ ...view, prior: 'complete' })}>complete map</button>
-                  <button type="button" className={view.prior === 'stale' ? 'on' : ''} onClick={() => setView({ ...view, prior: 'stale' })}>stale map</button>
+                <span className="lv-toggle">
+                  <span className="seg" role="group" aria-label="Ground hazard map">
+                    <button type="button" className={view.prior === 'complete' ? 'on' : ''} onClick={() => setView({ ...view, prior: 'complete' })}>complete map</button>
+                    <button type="button" className={view.prior === 'stale' ? 'on' : ''} onClick={() => setView({ ...view, prior: 'stale' })}>stale map</button>
+                  </span>
+                  <InfoTip term="hazardMap" />
                 </span>
-                <span className="seg" role="group" aria-label="Neural hazard detector">
-                  <button type="button" className={!view.detector ? 'on' : ''} onClick={() => setView({ ...view, detector: false })}>baseline</button>
-                  <button type="button" className={view.detector ? 'on' : ''} disabled={!hasDetector} onClick={() => setView({ ...view, detector: true })}>+ detector</button>
+                <span className="lv-toggle">
+                  <span className="seg" role="group" aria-label="Neural hazard detector">
+                    <button type="button" className={!view.detector ? 'on' : ''} onClick={() => setView({ ...view, detector: false })}>baseline</button>
+                    <button type="button" className={view.detector ? 'on' : ''} disabled={!hasDetector} onClick={() => setView({ ...view, detector: true })}>+ detector</button>
+                  </span>
+                  <InfoTip term="baseline" />
                 </span>
               </div>
               <div className={`lv-verdict tone-${v.tone}`}>
                 <div className="lv-verdict-main">{point.abort[key] === undefined ? 'No data' : point.abort[key] ? 'Back away' : 'Touch down'}</div>
-                <div className="lv-verdict-sub">{v.text}</div>
+                <div className="lv-verdict-sub">{v.text}<InfoTip term="decision" /></div>
               </div>
               <div className="lv-nums">
                 <div>
                   <div className="big"><CountText value={`${point.delivery_error_m.toFixed(2)} m`} duration={0.9} /></div>
-                  <div className="dim">from the aim point at touchdown</div>
+                  <div className="dim">from the aim point at touchdown<InfoTip term="delivery" /></div>
                 </div>
                 <div>
                   <div className="big">{point.unsafe_contact ? 'Hazard' : 'Safe'}</div>
-                  <div className="dim">ground under the contact point</div>
+                  <div className="dim">ground under the contact point<InfoTip term="groundUnder" /></div>
                 </div>
                 <div>
                   <div className="big">{baseAbort === undefined ? 'n/a' : baseAbort ? 'Back away' : 'Touch down'}</div>
-                  <div className="dim">faithful baseline decision</div>
+                  <div className="dim">faithful baseline decision<InfoTip term="baselineDecision" /></div>
                 </div>
               </div>
               <Ruler err={point.delivery_error_m} />
-              <h3>One flight, judged four ways</h3>
+              <h3>One flight, judged four ways<InfoTip term="fourWays" /></h3>
               <div className="table-wrap">
                 <table>
                   <tbody>

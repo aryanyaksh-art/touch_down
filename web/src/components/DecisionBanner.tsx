@@ -1,4 +1,5 @@
 import type { Replay } from '../types'
+import InfoTip from './InfoTip'
 
 interface Props {
   replay: Replay
@@ -41,12 +42,12 @@ export default function DecisionBanner({ replay, k, prior, detector }: Props) {
   const good = abort ? d.unsafe_contact : !d.unsafe_contact
   return (
     <div className={`banner ${abort ? 'abort' : 'land'}${d.unsafe_contact && !abort ? ' miss' : ''}`}>
-      <div className="banner-main">{verdict}</div>
+      <div className="banner-main">{verdict}<InfoTip term="decision" /></div>
       <div className="banner-sub">
-        {p !== undefined && <span>Hazard probability at predicted contact: <b>{(p * 100).toFixed(0)}%</b></span>}
+        {p !== undefined && <span>Hazard probability at predicted contact: <b>{(p * 100).toFixed(0)}%</b><InfoTip term="hazardProbability" /></span>}
         <span className={good ? 'ok' : 'bad'}>{outcome}</span>
         <span className="muted">
-          Landed {d.delivery_error_m.toFixed(2)} m from target. Prediction off by {(d.pred_vs_actual_m * 100).toFixed(0)} cm.
+          Landed {d.delivery_error_m.toFixed(2)} m from target. Prediction off by {(d.pred_vs_actual_m * 100).toFixed(0)} cm.<InfoTip term="predictionError" />
         </span>
       </div>
     </div>

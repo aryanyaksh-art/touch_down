@@ -1,5 +1,7 @@
 import { CaretLeft, CaretRight, Pause, Play } from '@phosphor-icons/react'
 import type { Replay } from '../types'
+import InfoTip from './InfoTip'
+import type { TermKey } from '../lib/glossary'
 
 interface Props {
   replay: Replay
@@ -9,7 +11,7 @@ interface Props {
   setPlaying: (p: boolean) => void
 }
 
-function Spark({ xs, ys, k, label, unit, fmt }: { xs: number[]; ys: number[]; k: number; label: string; unit: string; fmt: (v: number) => string }) {
+function Spark({ xs, ys, k, label, unit, fmt, term }: { xs: number[]; ys: number[]; k: number; label: string; unit: string; fmt: (v: number) => string; term?: TermKey }) {
   const w = 220
   const h = 56
   const x0 = Math.min(...xs)
@@ -21,7 +23,7 @@ function Spark({ xs, ys, k, label, unit, fmt }: { xs: number[]; ys: number[]; k:
   return (
     <div className="spark">
       <div className="spark-head">
-        <span className="muted">{label}</span>
+        <span className="muted">{label}{term && <InfoTip term={term} />}</span>
         <b>{fmt(ys[k])} <span className="muted">{unit}</span></b>
       </div>
       <svg viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none">
@@ -54,12 +56,12 @@ export default function Timeline({ replay, k, setK, playing, setPlaying }: Props
       </div>
       <div className="sparks">
         <Spark xs={t} ys={replay.frames.map((f) => f.alt)} k={k} label="Altitude" unit="m" fmt={(v) => v.toFixed(1)} />
-        <Spark xs={t} ys={replay.frames.map((f) => f.err * 100)} k={k} label="Position error" unit="cm" fmt={(v) => v.toFixed(0)} />
-        <Spark xs={t} ys={replay.frames.map((f) => f.used)} k={k} label="Landmarks matched" unit="" fmt={(v) => v.toFixed(0)} />
+        <Spark xs={t} ys={replay.frames.map((f) => f.err * 100)} k={k} label="Position error" unit="cm" fmt={(v) => v.toFixed(0)} term="positionError" />
+        <Spark xs={t} ys={replay.frames.map((f) => f.used)} k={k} label="Landmarks matched" unit="" fmt={(v) => v.toFixed(0)} term="landmarks" />
       </div>
       {replay.matchpoint_t != null && (
         <div className="muted small">
-          Matchpoint-style burn at T+{replay.matchpoint_t.toFixed(0)} s, {((replay.burn_dv ?? 0) * 1000).toFixed(1)} mm/s
+          Matchpoint-style burn at T+{replay.matchpoint_t.toFixed(0)} s, {((replay.burn_dv ?? 0) * 1000).toFixed(1)} mm/s<InfoTip term="matchpoint" />
         </div>
       )}
     </div>

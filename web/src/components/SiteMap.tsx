@@ -1,5 +1,6 @@
 import { dataUrl } from '../data'
 import type { Replay, Site } from '../types'
+import InfoTip from './InfoTip'
 
 interface Props {
   site: Site
@@ -26,7 +27,7 @@ export default function SiteMap({ site, replay, k, showPrior }: Props) {
   return (
     <div className="panel map">
       <div className="panel-title">
-        <span>Site, top-down</span>
+        <span>Site, top-down<InfoTip term="map" /></span>
         <span className="muted">{lx.toFixed(0)} × {ly.toFixed(0)} m, north up</span>
       </div>
       <svg viewBox={`${-lx / 2} ${-ly / 2} ${lx} ${ly}`} preserveAspectRatio="xMidYMid meet">

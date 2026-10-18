@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="docs/img/banner.jpg" width="820" alt="A spiral galaxy of stars beside the title TouchDown">
+<img src="docs/img/social_preview.jpg" width="820" alt="The asteroid Bennu against a field of stars">
 
 # TouchDown
 
