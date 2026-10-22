@@ -13,7 +13,7 @@ A from-scratch recreation of the autonomous sample collection NASA's OSIRIS-REx 
 ![license](https://img.shields.io/badge/license-MIT-green)
 ![status](https://img.shields.io/badge/status-results%20published-brightgreen)
 
-[**Live site**](https://aryanyaksh-art.github.io/touch_down/) &nbsp;·&nbsp; [Method](docs/method.md) &nbsp;·&nbsp; [Validation](docs/validation.md) &nbsp;·&nbsp; [Descent from 125 m](docs/descent_extension.md) &nbsp;·&nbsp; [Reviewer Q&A](docs/expert_prep.md)
+[**Live site**](https://aryanyaksh-art.github.io/touch_down/) &nbsp;·&nbsp; [Method](docs/method.md) &nbsp;·&nbsp; [Validation](docs/validation.md) &nbsp;·&nbsp; [Descent from 125 m](docs/descent_extension.md) &nbsp;·&nbsp; [Reviewer Q&A](docs/expert_prep.md) &nbsp;·&nbsp; [Article](https://medium.com/@aryanyaksh/i-rebuilt-how-nasa-landed-on-an-asteroid-1-000-times-f2e3569a491c)
 
 </div>
 
@@ -71,6 +71,8 @@ Details and every assumption: [docs/method.md](docs/method.md).
 - **The navigation filter is overconfident** (documented, with a calibration sweep).
 
 ## Try it
+
+**The article** (a plain-language write-up of the build): <https://medium.com/@aryanyaksh/i-rebuilt-how-nasa-landed-on-an-asteroid-1-000-times-f2e3569a491c>
 
 **The site** (nothing to install): <https://aryanyaksh-art.github.io/touch_down/>. Click from a telescope under a meteor shower into a galaxy of 1,000 landings, one star each; open a star for its picture and decision, or watch the story: a 3D walk through how the probe sees hazards and lands, on real Bennu terrain.
 
